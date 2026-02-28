@@ -11,7 +11,7 @@ export default function DashboardPage() {
   return (
     <AppShell title="Dashboard">
       {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <StatCard
           title="Missed Today"
           value={String(stats.missedToday)}
@@ -59,14 +59,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Main content */}
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-6 lg:grid-cols-3">
         {/* Recent calls — spans 2 cols */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <RecentCallsTable />
         </div>
 
         {/* Activity summary */}
-        <div className="col-span-1 flex flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Response Breakdown</CardTitle>

@@ -41,29 +41,30 @@ export function RecentCallsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Caller</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Time</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground sm:px-6">Caller</th>
+              <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground sm:table-cell">Time</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Response</th>
+              <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground md:table-cell">Response</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground"></th>
             </tr>
           </thead>
           <tbody>
             {recentCalls.map((call) => (
               <tr key={call.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
-                <td className="px-6 py-3">
+                <td className="px-4 py-3 sm:px-6">
                   <div>
                     <p className="font-medium">{call.callerName ?? "Unknown"}</p>
                     <p className="text-xs text-muted-foreground">{call.phoneNumber}</p>
+                    <p className="text-xs text-muted-foreground sm:hidden">{formatRelativeTime(call.timestamp)}</p>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                   {formatRelativeTime(call.timestamp)}
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={call.status} />
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden px-4 py-3 md:table-cell">
                   <ChannelBadge channel={call.responseChannel} />
                 </td>
                 <td className="px-4 py-3 text-right">
