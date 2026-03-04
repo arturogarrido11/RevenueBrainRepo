@@ -63,7 +63,7 @@ export const getStats = query({
   },
 })
 
-export const create = internalMutation({
+export const createOrMarkMissed = internalMutation({
   args: {
     twilioCallSid: v.string(),
     phoneNumber: v.string(),
@@ -71,44 +71,89 @@ export const create = internalMutation({
     timestamp: v.number(),
   },
   handler: async (ctx, args) => {
-    // Avoid duplicate entries for the same call
     const existing = await ctx.db
       .query("calls")
       .withIndex("by_callSid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first()
-    if (existing) return existing._id
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        phoneNumber: args.phoneNumber,
+        callerName: args.callerName ?? existing.callerName,
+        status: "missed",
+        timestamp: existing.timestamp ?? args.timestamp,
+      })
+      return existing._id
+    }
 
     return await ctx.db.insert("calls", {
       twilioCallSid: args.twilioCallSid,
       phoneNumber: args.phoneNumber,
       callerName: args.callerName,
       timestamp: args.timestamp,
-      status: "pending",
+      status: "missed",
       responseChannel: "none",
       smsSent: false,
     })
   },
 })
 
-export const markSmsResponse = internalMutation({
+export const markSmsSent = internalMutation({
   args: {
     twilioCallSid: v.string(),
     smsBody: v.string(),
-    responseTime: v.number(),
   },
-  handler: async (ctx, { twilioCallSid, smsBody, responseTime }) => {
+  handler: async (ctx, { twilioCallSid, smsBody }) => {
     const call = await ctx.db
       .query("calls")
       .withIndex("by_callSid", (q) => q.eq("twilioCallSid", twilioCallSid))
       .first()
 
-    if (call) {
-      await ctx.db.patch(call._id, {
+    if (!call) return
+
+    await ctx.db.patch(call._id, {
+      smsSent: true,
+      smsBody,
+    })
+  },
+})
+
+export const recordInboundSmsLead = internalMutation({
+  args: {
+    fromPhoneNumber: v.string(),
+    messageBody: v.string(),
+    timestamp: v.number(),
+    businessId: v.optional(v.string()),
+    twilioMessageSid: v.optional(v.string()),
+  },
+  handler: async (
+    ctx,
+    { fromPhoneNumber, messageBody, timestamp, businessId, twilioMessageSid }
+  ) => {
+    await ctx.db.insert("leads", {
+      fromPhoneNumber,
+      messageBody,
+      timestamp,
+      businessId,
+      twilioMessageSid,
+    })
+
+    const latestCall = await ctx.db
+      .query("calls")
+      .withIndex("by_phone", (q) => q.eq("phoneNumber", fromPhoneNumber))
+      .order("desc")
+      .first()
+
+    if (latestCall) {
+      const responseTime = Math.max(
+        0,
+        Math.round((timestamp - latestCall.timestamp) / 1000)
+      )
+
+      await ctx.db.patch(latestCall._id, {
         status: "responded",
         responseChannel: "sms",
         responseTime,
-        smsSent: true,
-        smsBody,
       })
     }
   },

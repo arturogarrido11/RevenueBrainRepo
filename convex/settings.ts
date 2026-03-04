@@ -4,7 +4,7 @@ import { v } from "convex/values"
 const DEFAULTS = {
   businessName: "My Business",
   smsTemplate:
-    "Hi! Sorry we missed your call at {business_name}. We'll get back to you as soon as possible!",
+    "Hi! Sorry we missed your call. Reply here with what you need, or book here: {callback_url}",
   smsEnabled: true,
   responseDelaySeconds: 0,
 }

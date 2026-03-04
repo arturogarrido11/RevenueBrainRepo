@@ -48,4 +48,14 @@ export default defineSchema({
     smsEnabled: v.boolean(),
     responseDelaySeconds: v.number(),
   }),
+
+  leads: defineTable({
+    fromPhoneNumber: v.string(),
+    messageBody: v.string(),
+    timestamp: v.number(),
+    businessId: v.optional(v.string()),
+    twilioMessageSid: v.optional(v.string()),
+  })
+    .index("by_timestamp", ["timestamp"])
+    .index("by_phone", ["fromPhoneNumber"]),
 })
