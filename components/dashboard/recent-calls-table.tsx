@@ -101,7 +101,7 @@ export function RecentCallsTable() {
             ) : calls.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
-                  No calls yet — they'll appear here as soon as someone calls your Twilio number.
+                  No calls yet — they&apos;ll appear here as soon as someone calls your Twilio number.
                 </td>
               </tr>
             ) : (
