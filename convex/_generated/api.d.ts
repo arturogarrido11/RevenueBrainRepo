@@ -11,6 +11,7 @@
 import type * as calls from "../calls.js";
 import type * as contacts from "../contacts.js";
 import type * as http from "../http.js";
+import type * as leads from "../leads.js";
 import type * as settings from "../settings.js";
 import type * as twilio from "../twilio.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   calls: typeof calls;
   contacts: typeof contacts;
   http: typeof http;
+  leads: typeof leads;
   settings: typeof settings;
   twilio: typeof twilio;
 }>;

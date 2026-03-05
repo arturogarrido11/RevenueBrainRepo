@@ -114,6 +114,27 @@ Webhook and SMS events emit structured JSON logs with event names, status, and e
    - missed call triggers outbound SMS
    - inbound SMS reply inserts a lead record
 
+## Automated smoke test
+
+After deploying Convex + webhooks, run:
+
+```bash
+npm run smoke:webhooks
+```
+
+Required env:
+
+- `NEXT_PUBLIC_CONVEX_URL` (or `CONVEX_URL`) pointing to your Convex site URL
+- `TWILIO_WEBHOOK_SECRET` (or `TWILIO_AUTH_TOKEN`) if signature validation is enabled
+- optional `TWILIO_PHONE_NUMBER` for realistic inbound `To` value
+
+What it validates:
+
+1. `GET /health` responds
+2. `POST /voice/status` accepted for missed call
+3. `POST /sms` accepted for inbound message
+4. Convex records include the call + lead and call status becomes `responded`
+
 ## Security notes
 
 - Never commit real secrets
