@@ -1,4 +1,4 @@
-import { query, internalMutation } from "./_generated/server"
+import { query, internalMutation, internalQuery } from "./_generated/server"
 import { v } from "convex/values"
 
 export const listRecent = query({
@@ -60,6 +60,16 @@ export const getStats = query({
       newContactsThisWeek: contacts.filter((c) => c.lastCalledAt >= weekAgo)
         .length,
     }
+  },
+})
+
+export const getByCallSid = internalQuery({
+  args: { twilioCallSid: v.string() },
+  handler: async (ctx, { twilioCallSid }) => {
+    return await ctx.db
+      .query("calls")
+      .withIndex("by_callSid", (q) => q.eq("twilioCallSid", twilioCallSid))
+      .first()
   },
 })
 

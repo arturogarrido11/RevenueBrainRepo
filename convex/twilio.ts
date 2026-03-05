@@ -36,12 +36,46 @@ export const sendSms = internalAction({
       return
     }
 
+    const call = await ctx.runQuery(internal.calls.getByCallSid, { twilioCallSid })
+    if (!call) {
+      console.warn(
+        JSON.stringify({
+          event: "twilio.send_sms.skipped",
+          reason: "call_not_found",
+          twilioCallSid,
+        })
+      )
+      return
+    }
+
+    if (call.smsSent) {
+      console.log(
+        JSON.stringify({
+          event: "twilio.send_sms.skipped",
+          reason: "already_sent",
+          twilioCallSid,
+        })
+      )
+      return
+    }
+
     const settings = await ctx.runQuery(internal.settings.getInternal)
+    if (!settings.smsEnabled) {
+      console.log(
+        JSON.stringify({
+          event: "twilio.send_sms.skipped",
+          reason: "sms_disabled",
+          twilioCallSid,
+        })
+      )
+      return
+    }
+
     const bookingLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}/book` : ""
 
     const body = settings.smsTemplate
       .replace("{business_name}", settings.businessName)
-      .replace("{caller_name}", "there")
+      .replace("{caller_name}", call.callerName ?? "there")
       .replace("{callback_url}", bookingLink)
 
     const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64")
@@ -64,9 +98,6 @@ export const sendSms = internalAction({
       await ctx.runMutation(internal.calls.markSmsSent, {
         twilioCallSid,
         smsBody: body,
-      })
-      await ctx.runMutation(internal.contacts.upsertByPhone, {
-        phoneNumber: to,
       })
 
       console.log(

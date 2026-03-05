@@ -94,11 +94,18 @@ http.route({
       callerName,
     })
 
-    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-      to: from,
-      twilioCallSid: callSid,
-      callTimestamp: timestamp,
-    })
+    const settings = await ctx.runQuery(internal.settings.getInternal)
+    if (settings.smsEnabled) {
+      await ctx.scheduler.runAfter(
+        Math.max(0, settings.responseDelaySeconds * 1000),
+        internal.twilio.sendSms,
+        {
+          to: from,
+          twilioCallSid: callSid,
+          callTimestamp: timestamp,
+        }
+      )
+    }
 
     return new Response("OK", { status: 200 })
   }),

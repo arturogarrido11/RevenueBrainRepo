@@ -1,4 +1,8 @@
-import { MoreHorizontal, MessageSquare, Mail, History, Ban } from "lucide-react"
+"use client"
+
+import { MoreHorizontal, MessageSquare, Mail, History, Ban, ChevronLeft, ChevronRight } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,15 +13,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import {
-  MOCK_CONTACTS,
-  formatRelativeTime,
-  type ContactStatus,
-  type ResponseChannel,
-} from "@/lib/mock-data"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 
-function ContactAvatar({ name }: { name: string | null }) {
+type ContactStatus = "new" | "active" | "lapsed"
+type ResponseChannel = "sms" | "email" | "none" | undefined
+
+function ContactAvatar({ name }: { name: string | undefined }) {
   const initials = name
     ? name
         .split(" ")
@@ -40,13 +40,28 @@ function StatusBadge({ status }: { status: ContactStatus }) {
   return <Badge variant="outline">New</Badge>
 }
 
-function ChannelLabel({ channel }: { channel: ResponseChannel | null }) {
+function ChannelLabel({ channel }: { channel: ResponseChannel }) {
   if (channel === "sms") return <span className="text-xs">SMS</span>
   if (channel === "email") return <span className="text-xs">Email</span>
   return <span className="text-xs text-muted-foreground">None</span>
 }
 
+function formatRelativeTime(timestamp: number): string {
+  const diffMs = Date.now() - timestamp
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMins < 1) return "just now"
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return "yesterday"
+  return `${diffDays}d ago`
+}
+
 export function ContactsTable() {
+  const contacts = useQuery(api.contacts.list)
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
@@ -63,70 +78,80 @@ export function ContactsTable() {
             </tr>
           </thead>
           <tbody>
-            {MOCK_CONTACTS.map((contact) => (
-              <tr
-                key={contact.id}
-                className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
-              >
-                <td className="px-6 py-3">
-                  <div className="flex items-center gap-3">
-                    <ContactAvatar name={contact.name} />
-                    <div>
-                      <p className="font-medium">{contact.name ?? "Unknown"}</p>
-                      <p className="text-xs text-muted-foreground">{contact.phoneNumber}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 tabular-nums">{contact.totalCalls}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {formatRelativeTime(contact.lastCalledAt)}
-                </td>
-                <td className="px-4 py-3">
-                  <ChannelLabel channel={contact.lastResponseChannel} />
-                </td>
-                <td className="px-4 py-3 tabular-nums">
-                  {contact.responseRate > 0
-                    ? `${Math.round(contact.responseRate * 100)}%`
-                    : <span className="text-muted-foreground">0%</span>}
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={contact.status} />
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-sm">
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <History className="size-4" />
-                        View History
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <MessageSquare className="size-4" />
-                        Send SMS
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Mail className="size-4" />
-                        Send Email
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive">
-                        <Ban className="size-4" />
-                        Block Number
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {contacts === undefined ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-8 text-center text-sm text-muted-foreground">
+                  Loading contacts…
                 </td>
               </tr>
-            ))}
+            ) : contacts.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-8 text-center text-sm text-muted-foreground">
+                  No contacts yet.
+                </td>
+              </tr>
+            ) : (
+              contacts.map((contact) => (
+                <tr
+                  key={contact._id}
+                  className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
+                >
+                  <td className="px-6 py-3">
+                    <div className="flex items-center gap-3">
+                      <ContactAvatar name={contact.name} />
+                      <div>
+                        <p className="font-medium">{contact.name ?? "Unknown"}</p>
+                        <p className="text-xs text-muted-foreground">{contact.phoneNumber}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">{contact.totalCalls}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatRelativeTime(contact.lastCalledAt)}</td>
+                  <td className="px-4 py-3">
+                    <ChannelLabel channel={contact.lastResponseChannel} />
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">{Math.round(contact.responseRate * 100)}%</td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={contact.status} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon-sm">
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <History className="size-4" />
+                          View History
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <MessageSquare className="size-4" />
+                          Send SMS
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Mail className="size-4" />
+                          Send Email
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive">
+                          <Ban className="size-4" />
+                          Block Number
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </CardContent>
       <CardFooter className="flex items-center justify-between border-t px-6 py-3">
-        <p className="text-xs text-muted-foreground">Showing 15 of 15 contacts</p>
+        <p className="text-xs text-muted-foreground">
+          {contacts ? `Showing ${contacts.length} contact${contacts.length === 1 ? "" : "s"}` : "Loading..."}
+        </p>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon-sm" disabled>
             <ChevronLeft className="size-3.5" />
