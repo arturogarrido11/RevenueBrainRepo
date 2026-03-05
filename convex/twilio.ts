@@ -71,6 +71,19 @@ export const sendSms = internalAction({
       return
     }
 
+    const contact = await ctx.runQuery(internal.contacts.getByPhone, { phoneNumber: to })
+    if (contact?.optedOut) {
+      console.log(
+        JSON.stringify({
+          event: "twilio.send_sms.skipped",
+          reason: "contact_opted_out",
+          twilioCallSid,
+          to,
+        })
+      )
+      return
+    }
+
     const bookingLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}/book` : ""
 
     const body = settings.smsTemplate

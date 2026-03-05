@@ -40,6 +40,7 @@ export default defineSchema({
       v.literal("active"),
       v.literal("lapsed")
     ),
+    optedOut: v.optional(v.boolean()),
   }).index("by_phone", ["phoneNumber"]),
 
   settings: defineTable({

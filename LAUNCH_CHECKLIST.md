@@ -16,7 +16,7 @@
 
 - [x] Add smoke tests for missed-call → SMS, inbound SMS → lead
 - [ ] Add minimal monitoring/alerting for webhook and send failures
-- [ ] Add explicit STOP/opt-out behavior for compliance
+- [x] Add explicit STOP/opt-out behavior for compliance
 - [ ] Add pagination/filtering/search for calls and contacts
 - [ ] Add export actions for calls/contacts
 

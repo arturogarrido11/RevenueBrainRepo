@@ -1,13 +1,46 @@
-import { query, internalMutation } from "./_generated/server"
+import { query, internalMutation, internalQuery } from "./_generated/server"
 import { v } from "convex/values"
 
 export const list = query({
   handler: async (ctx) => {
+    return await ctx.db.query("contacts").collect()
+  },
+})
+
+export const getByPhone = internalQuery({
+  args: { phoneNumber: v.string() },
+  handler: async (ctx, { phoneNumber }) => {
     return await ctx.db
       .query("contacts")
-      .withIndex("by_phone")
-      .order("desc")
-      .collect()
+      .withIndex("by_phone", (q) => q.eq("phoneNumber", phoneNumber))
+      .first()
+  },
+})
+
+export const setOptOutByPhone = internalMutation({
+  args: {
+    phoneNumber: v.string(),
+    optedOut: v.boolean(),
+  },
+  handler: async (ctx, { phoneNumber, optedOut }) => {
+    const existing = await ctx.db
+      .query("contacts")
+      .withIndex("by_phone", (q) => q.eq("phoneNumber", phoneNumber))
+      .first()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { optedOut })
+      return
+    }
+
+    await ctx.db.insert("contacts", {
+      phoneNumber,
+      totalCalls: 0,
+      lastCalledAt: Date.now(),
+      responseRate: 0,
+      status: "new",
+      optedOut,
+    })
   },
 })
 
@@ -58,6 +91,7 @@ export const upsertByPhone = internalMutation({
         lastResponseChannel: responseChannel,
         responseRate: 0,
         status: "new",
+        optedOut: false,
       })
     }
   },

@@ -99,6 +99,11 @@ Then point Twilio webhook URLs to your ngrok URL + paths. If you test against de
 - optional `businessId`
 - optional `twilioMessageSid`
 
+### SMS compliance behavior
+
+- Inbound STOP keywords (`STOP`, `STOPALL`, `UNSUBSCRIBE`, `CANCEL`, `END`, `QUIT`) mark the contact as opted-out.
+- Opted-out contacts are automatically skipped for future outbound auto-SMS sends.
+
 ## Logging
 
 Webhook and SMS events emit structured JSON logs with event names, status, and error details.

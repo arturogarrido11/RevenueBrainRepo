@@ -5,6 +5,7 @@ import { internal } from "./_generated/api"
 const http = httpRouter()
 
 const MISSED_STATUSES = new Set(["no-answer", "busy", "failed"])
+const STOP_KEYWORDS = new Set(["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"])
 
 async function computeTwilioSignature(url: string, body: string, authToken: string) {
   const params = new URLSearchParams(body)
@@ -145,6 +146,19 @@ http.route({
 
     if (!from || !messageBody) {
       return new Response("Ignored", { status: 200 })
+    }
+
+    const normalizedBody = messageBody.trim().toUpperCase()
+    if (STOP_KEYWORDS.has(normalizedBody)) {
+      await ctx.runMutation(internal.contacts.setOptOutByPhone, {
+        phoneNumber: from,
+        optedOut: true,
+      })
+
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Message>You are unsubscribed and will no longer receive messages.</Message></Response>`,
+        { headers: { "Content-Type": "text/xml" }, status: 200 }
+      )
     }
 
     await ctx.runMutation(internal.calls.recordInboundSmsLead, {
