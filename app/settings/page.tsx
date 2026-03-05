@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { AppShell } from "@/components/layout/app-shell"
@@ -120,6 +121,20 @@ export default function SettingsPage() {
               </Button>
               {saved ? <span className="text-xs text-emerald-600">Saved</span> : null}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Legal</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <Link href="/privacy-policy" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-of-service" className="text-primary hover:underline">
+              Terms of Service
+            </Link>
           </CardContent>
         </Card>
       </div>
