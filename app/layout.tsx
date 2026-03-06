@@ -30,7 +30,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexClientProvider>
+          {children}
+          <footer className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 py-3 text-center text-sm text-muted-foreground backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            © 2026 Revenue Brain — Operated by Arturo Garrido
+          </footer>
+        </ConvexClientProvider>
       </body>
     </html>
   );
