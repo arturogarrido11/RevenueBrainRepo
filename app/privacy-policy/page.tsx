@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = "March 5, 2026"
+  const lastUpdated = "March 31, 2026"
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
