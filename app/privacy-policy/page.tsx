@@ -33,7 +33,34 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-lg font-medium">3. Data Sharing</h2>
+          <h2 className="text-lg font-medium">3. SMS and Consent</h2>
+          <p>
+            Revenue Brain Missed Call Recovery Alerts ("the Program") provides SMS messages to help
+            you recover missed calls, follow up with leads, and schedule appointments.
+          </p>
+          <p>
+            By providing your mobile phone number on our website and submitting the corresponding
+            form, you consent to receive SMS messages from Revenue Brain Missed Call Recovery Alerts
+            related to follow-up and scheduling after missed calls.
+          </p>
+          <p>
+            Message frequency varies based on your interactions and missed-call activity. Message
+            and data rates may apply. You are responsible for any charges imposed by your mobile
+            carrier.
+          </p>
+          <p>
+            You may opt out of receiving SMS messages from us at any time by replying STOP to any
+            message. To receive additional information or assistance, reply HELP to any message.
+          </p>
+          <p>
+            We use your phone number and SMS message data solely to provide and improve the Program
+            and related services. We do not sell, rent, or share your phone number or SMS message
+            data with third parties for their marketing purposes.
+          </p>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-lg font-medium">4. Data Sharing</h2>
           <p>
             We do not sell personal information. We may share data with infrastructure and
             communications providers only as needed to operate the service and comply with legal
@@ -42,7 +69,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-lg font-medium">4. Data Retention</h2>
+          <h2 className="text-lg font-medium">5. Data Retention</h2>
           <p>
             We retain data for as long as needed to provide the service, satisfy legal obligations,
             resolve disputes, and enforce agreements. You may request deletion of your data,

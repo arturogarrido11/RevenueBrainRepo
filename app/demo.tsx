@@ -108,10 +108,12 @@ export default function DemoPage() {
         <p className="mt-3 text-xs text-muted-foreground">
           <span className="font-semibold">SMS Consent:</span> By submitting this form, you agree
           to receive SMS messages related to your inquiry from Revenue Brain and participating
-          businesses. Message &amp; data rates may apply. Message frequency varies. Reply STOP to
-          cancel, HELP for help. See our Privacy Policy at
+          businesses. These one-to-one messages are sent in response to your specific inquiry or
+          missed call, and are limited to follow-up, scheduling, and clarification about
+          appointments or services. Message &amp; data rates may apply. Message frequency varies.
+          Reply STOP to cancel, HELP for help. See our Privacy Policy at
           <span className="ml-1 inline-flex items-center gap-1">
-            <Link href="/privacy-policy" className="underline">
+            <Link href="/privacy" className="underline">
               https://www.revenuebrain.ai/privacy
             </Link>
             .
