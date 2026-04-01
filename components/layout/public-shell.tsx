@@ -31,6 +31,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <div className="flex flex-wrap gap-4">
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/terms">Terms of Service</Link>
+            <Link href="/sms-policy">SMS Policy</Link>
           </div>
           <p className="mt-4">Revenue Brain is a customer communication software platform operated by Arturo Garrido.</p>
         </div>
