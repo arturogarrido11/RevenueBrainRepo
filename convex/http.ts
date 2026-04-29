@@ -181,6 +181,59 @@ http.route({
   }),
 })
 
+// Recording status callback for AI receptionist.
+// Configure via <Record recordingStatusCallback="/voice/recording"> in /voice/answer TwiML.
+http.route({
+  path: "/voice/recording",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const body = await request.text()
+
+    const validation = await validateTwilioRequest(request, body)
+    if (!validation.ok) {
+      console.warn(
+        JSON.stringify({ event: "webhook.voice_recording.rejected", reason: validation.reason })
+      )
+      return new Response("Invalid signature", { status: 403 })
+    }
+
+    const params = new URLSearchParams(body)
+    const callSid = params.get("CallSid") ?? ""
+    const from = params.get("From") ?? ""
+    const callerName = params.get("CallerName") || undefined
+    const recordingUrl = params.get("RecordingUrl") ?? ""
+    const timestamp = Date.now()
+
+    console.log(
+      JSON.stringify({
+        event: "webhook.voice_recording.received",
+        callSid,
+        from,
+        callerName,
+        recordingUrl,
+      })
+    )
+
+    if (!callSid || !from || !recordingUrl) {
+      return new Response("Ignored", { status: 200 })
+    }
+
+    await ctx.runMutation(internal.calls.upsertAiReceptionistRecording, {
+      twilioCallSid: callSid,
+      phoneNumber: from,
+      callerName,
+      timestamp,
+      recordingUrl,
+    })
+
+    await ctx.scheduler.runAfter(0, internal.calls.processAiRecording, {
+      twilioCallSid: callSid,
+    })
+
+    return new Response("OK", { status: 200 })
+  }),
+})
+
 http.route({
   path: "/health",
   method: "GET",
