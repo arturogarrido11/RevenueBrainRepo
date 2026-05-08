@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 
-type CallStatus = "missed" | "responded" | "pending"
+type CallStatus = "missed" | "responded" | "pending" | "ai_recorded"
 type ResponseChannel = "sms" | "email" | "none"
 
 interface Call {
@@ -31,6 +31,7 @@ interface Call {
 function StatusBadge({ status }: { status: CallStatus }) {
   if (status === "missed") return <Badge variant="destructive">Missed</Badge>
   if (status === "responded") return <Badge variant="default">Responded</Badge>
+  if (status === "ai_recorded") return <Badge variant="outline">AI Recorded</Badge>
   return <Badge variant="secondary">Pending</Badge>
 }
 

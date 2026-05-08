@@ -7,6 +7,8 @@ const DEFAULTS = {
     "Hi! Sorry we missed your call. Reply here with what you need, or book here: {callback_url}",
   smsEnabled: true,
   responseDelaySeconds: 0,
+  ownerAlertEmailEnabled: false,
+  ownerEmail: "",
 }
 
 export const get = query({
@@ -30,6 +32,8 @@ export const upsert = mutation({
     smsTemplate: v.string(),
     smsEnabled: v.boolean(),
     responseDelaySeconds: v.number(),
+    ownerAlertEmailEnabled: v.optional(v.boolean()),
+    ownerEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.query("settings").first()

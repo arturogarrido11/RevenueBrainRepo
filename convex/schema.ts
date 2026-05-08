@@ -10,7 +10,8 @@ export default defineSchema({
     status: v.union(
       v.literal("missed"),
       v.literal("responded"),
-      v.literal("pending")
+      v.literal("pending"),
+      v.literal("ai_recorded")
     ),
     responseChannel: v.union(
       v.literal("sms"),
@@ -20,6 +21,24 @@ export default defineSchema({
     responseTime: v.optional(v.number()), // seconds after call
     smsSent: v.boolean(),
     smsBody: v.optional(v.string()),
+    type: v.optional(
+      v.union(
+        v.literal("standard"),
+        v.literal("ai_receptionist")
+      )
+    ),
+    channel: v.optional(
+      v.union(
+        v.literal("voice"),
+        v.literal("sms")
+      )
+    ),
+    recordingUrl: v.optional(v.string()),
+    transcript: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    priority: v.optional(
+      v.union(v.literal("hot"), v.literal("warm"), v.literal("low"))
+    ),
   })
     .index("by_timestamp", ["timestamp"])
     .index("by_phone", ["phoneNumber"])
@@ -48,6 +67,8 @@ export default defineSchema({
     smsTemplate: v.string(),
     smsEnabled: v.boolean(),
     responseDelaySeconds: v.number(),
+    ownerAlertEmailEnabled: v.optional(v.boolean()),
+    ownerEmail: v.optional(v.string()),
   }),
 
   leads: defineTable({
