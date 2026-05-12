@@ -59,6 +59,9 @@ export default function PrivacyPage() {
           You can opt out at any time by replying STOP and may reply HELP for help. See this Privacy
           Policy at <a href="https://www.revenuebrain.ai/privacy">https://www.revenuebrain.ai/privacy</a> for more details.
         </p>
+        <p>
+          SMS consent is not shared with third parties or affiliates for marketing purposes.
+        </p>
 
         <h2>4. Sharing of Information</h2>
         <p>
