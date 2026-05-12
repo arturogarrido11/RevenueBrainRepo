@@ -72,25 +72,34 @@ export default function DemoPage() {
               <option>Other Service Business</option>
             </select>
             <input required className="rounded-md border p-3" placeholder="Estimated missed calls / month" value={form.missedCallsPerMonth} onChange={(e) => setForm({ ...form, missedCallsPerMonth: e.target.value })} />
+            <div className="mt-1 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+              <input
+                id="sms-consent"
+                name="smsConsent"
+                type="checkbox"
+                required
+                className="mt-1 h-4 w-4 cursor-pointer rounded border-slate-300 text-indigo-600 focus-visible:ring-2 focus-visible:ring-indigo-500"
+              />
+              <label
+                htmlFor="sms-consent"
+                className="text-xs leading-5 text-slate-700 md:text-sm"
+              >
+                I agree to receive SMS messages from Revenue Brain or the business I am contacting
+                related to my inquiry. Message frequency varies. Msg &amp; data rates may apply.
+                Reply STOP to opt out, HELP for help. See our{" "}
+                <a
+                  href="https://www.revenuebrain.ai/privacy"
+                  className="underline"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </label>
+            </div>
             <button disabled={loading} className="rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 font-medium text-white shadow-sm hover:from-indigo-500 hover:to-violet-500 disabled:opacity-60">
               {loading ? "Submitting..." : "Request Demo"}
             </button>
             {status ? <p className="text-sm text-slate-700">{status}</p> : null}
-
-            <p className="mt-1 text-[11px] leading-4 text-slate-500">
-              By submitting this form, you agree to receive SMS messages related to your inquiry from
-              Revenue Brain and participating businesses. Message &amp; data rates may apply. Message
-              frequency varies. Reply STOP to cancel, HELP for help. See our
-              <a href="https://www.revenuebrain.ai/privacy" className="ml-1 underline">Privacy Policy</a>.
-            </p>
-
-            <div className="mt-2 rounded-md border bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-              <p><strong>SMS Program:</strong> Revenue Brain Missed Call Recovery Alerts</p>
-              <p><strong>Description:</strong> Follow-up and scheduling messages after missed calls.</p>
-              <p><strong>Message frequency:</strong> Varies. <strong>Msg & data rates may apply.</strong></p>
-              <p><strong>Opt-out:</strong> Reply STOP. <strong>Help:</strong> Reply HELP.</p>
-              <p><strong>Support:</strong> revenuebrain.server@gmail.com</p>
-            </div>
           </div>
         </form>
       </section>
