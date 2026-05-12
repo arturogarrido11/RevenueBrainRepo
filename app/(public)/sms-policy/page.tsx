@@ -37,12 +37,14 @@ export default function SmsPolicyPage() {
                 >
                   https://www.revenuebrain.ai/demo
                 </a>
-                . On this page, they provide their business details and mobile phone number and are
-                shown explicit SMS consent language directly below the
+                . On this page, they provide their business details and mobile phone number and must
+                actively check an unchecked consent checkbox directly above the
                 {" "}
                 <span className="font-semibold">“Request Demo”</span>
                 {" "}
-                button. This language explains:
+                button in order to submit the form. This checkbox is required for submission and
+                records the user’s explicit consent to receive SMS messages. The consent language
+                explains:
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>
