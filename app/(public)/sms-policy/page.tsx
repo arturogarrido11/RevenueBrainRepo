@@ -22,51 +22,32 @@ export default function SmsPolicyPage() {
               a one-time consent request following a user-initiated action (such as a phone call).
             </strong>
           </p>
-          <p>There are two primary ways end users consent to receive SMS messages:</p>
           <ol className="list-decimal space-y-3 pl-5">
-            <li>
-              <p className="font-medium">Website / form opt-in</p>
-              <p>
-                Some participating businesses may use their own website forms or intake flows that
-                include an SMS consent disclosure similar to the sample language below. On these
-                forms, users provide their business or contact details and phone number and are
-                clearly informed about the types of messages they will receive, that message and
-                data rates may apply, that message frequency may vary, and that they can reply
-                <span className="font-mono font-semibold"> STOP</span> to opt out and
-                <span className="font-mono font-semibold"> HELP</span> for help.
-              </p>
-              <p className="mt-2">
-                Only users who submit a form with this disclosure and provide their phone number
-                receive SMS messages related to their inquiry or service request.
-              </p>
-            </li>
             <li>
               <p className="font-medium">Missed call consent and follow-up</p>
               <p>
-                For participating businesses, Revenue Brain may send a
+                When a user places a phone call to a participating business, this is considered a
+                user-initiated interaction. If the call is missed, Revenue Brain sends a
                 {" "}
                 <strong>single SMS message</strong>
                 {" "}
-                in response to a missed call or inbound phone inquiry. This initial message is
-                strictly used to request the end user’s consent to continue communication via text.
+                to request consent to continue communication via text.
               </p>
               <p className="mt-2">Example:</p>
               <blockquote className="border-l-2 border-slate-200 pl-3 text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                “Hi, you just called [Business Name]. Reply YES to receive help by text. Reply STOP to
-                opt out.”
+                "Hi, this is [Business Name]. You just called us. Reply YES to receive help by text. Reply STOP to opt out."
               </blockquote>
               <p className="mt-2 font-medium">Key points:</p>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 <li>
                   <strong>
-                    No further SMS messages are sent unless the end user explicitly provides consent by
-                    replying YES.
+                    No further SMS messages are sent unless the end user explicitly opts in by replying YES.
                   </strong>
                 </li>
                 <li>
-                  Once consent is provided, Revenue Brain may send conversational and customer-care
-                  messages related to the missed call, including appointment scheduling, follow-up, and
-                  service-related communication.
+                  If the user replies YES, consent is recorded with timestamp and phone number, and the
+                  system allows customer-care messaging related to the missed call, appointment scheduling,
+                  or service coordination.
                 </li>
                 <li>
                   If the user does not reply, no additional messages are sent (other than responding to
@@ -74,10 +55,10 @@ export default function SmsPolicyPage() {
                 </li>
               </ul>
               <p className="mt-2">
-                Revenue Brain sends messages only to phone numbers that the business has collected
-                directly from its own leads or customers (for example via booking forms, intake forms,
-                website contact forms, or other customer-initiated service requests). Revenue Brain
-                does not use purchased, rented, or third-party lead lists for messaging.
+                Revenue Brain sends messages only to phone numbers that the business has collected directly
+                from its own leads or customers (for example via booking forms, intake forms, website contact
+                forms, or other customer-initiated service requests). Revenue Brain does not send messages to
+                purchased, rented, or third-party lead lists.
               </p>
             </li>
           </ol>
@@ -92,10 +73,9 @@ export default function SmsPolicyPage() {
           </p>
           <p>
             Ongoing SMS conversations occur only after an end user has provided explicit consent (for
-            example, by replying YES to the missed call consent message or by submitting a website
-            or intake form that includes the consent disclosure described in this policy). Message
-            frequency varies based on user engagement and the number of missed calls or appointments
-            requiring attention.
+            example, by replying YES to the missed call consent message). Message frequency varies
+            based on user engagement and the number of missed calls or appointments requiring
+            attention.
           </p>
         </section>
 
