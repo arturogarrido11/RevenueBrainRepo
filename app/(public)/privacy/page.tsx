@@ -60,7 +60,7 @@ export default function PrivacyPage() {
           Policy at <a href="https://www.revenuebrain.ai/privacy">https://www.revenuebrain.ai/privacy</a> for more details.
         </p>
         <p>
-          SMS consent is not shared with third parties or affiliates for marketing purposes.
+          SMS consent is not shared with third parties or affiliates for marketing or promotional purposes.
         </p>
 
         <h2>4. Sharing of Information</h2>

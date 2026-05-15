@@ -43,32 +43,17 @@ export default function DemoPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1">
-            <label className="block text-sm font-medium" htmlFor="workEmail">
-              Work email
-            </label>
-            <input
-              id="workEmail"
-              name="workEmail"
-              type="email"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              placeholder="you@company.com"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm font-medium" htmlFor="phone">
-              Mobile phone number
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              placeholder="+1 (555) 123-4567"
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="block text-sm font-medium" htmlFor="workEmail">
+            Work email
+          </label>
+          <input
+            id="workEmail"
+            name="workEmail"
+            type="email"
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            placeholder="you@company.com"
+          />
         </div>
 
         <div className="space-y-1">
@@ -104,56 +89,7 @@ export default function DemoPage() {
         >
           Request demo
         </button>
-
-        <p className="mt-3 text-xs text-muted-foreground">
-          <span className="font-semibold">SMS Consent:</span> By submitting this form, you agree
-          to receive SMS messages related to your inquiry from Revenue Brain and participating
-          businesses. These one-to-one messages are sent in response to your specific inquiry or
-          missed call, and are limited to follow-up, scheduling, and clarification about
-          appointments or services. Message &amp; data rates may apply. Message frequency varies.
-          Reply STOP to cancel, HELP for help. See our Privacy Policy at
-          <span className="ml-1 inline-flex items-center gap-1">
-            <Link href="/privacy" className="underline">
-              https://www.revenuebrain.ai/privacy
-            </Link>
-            .
-          </span>
-        </p>
       </form>
-
-      <section className="mt-10 rounded-lg border bg-muted/40 p-4 text-xs leading-5 text-muted-foreground">
-        <h2 className="text-sm font-medium text-foreground">SMS Program Details</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>
-            <span className="font-medium">Program Name:</span> Revenue Brain Missed Call Recovery
-            Alerts.
-          </li>
-          <li>
-            <span className="font-medium">Program Description:</span> Follow-up and scheduling
-            messages after missed calls for participating businesses and demo requests submitted
-            through this form.
-          </li>
-          <li>
-            <span className="font-medium">Message Frequency:</span> Message frequency varies
-            based on your interactions and missed-call volume.
-          </li>
-          <li>
-            <span className="font-medium">Cost:</span> Message &amp; data rates may apply.
-          </li>
-          <li>
-            <span className="font-medium">Opt-Out:</span> Reply STOP to cancel at any time.
-          </li>
-          <li>
-            <span className="font-medium">Help:</span> Reply HELP for help or contact us at
-            support@revenuebrain.ai.
-          </li>
-          <li>
-            <span className="font-medium">Privacy:</span> We do not sell, rent, or share your
-            phone number or SMS message data with third parties for their marketing purposes. See
-            our full Privacy Policy above.
-          </li>
-        </ul>
-      </section>
     </main>
   )
 }

@@ -25,42 +25,19 @@ export default function SmsPolicyPage() {
           <p>There are two primary ways end users consent to receive SMS messages:</p>
           <ol className="list-decimal space-y-3 pl-5">
             <li>
-              <p className="font-medium">Demo / inquiry opt-in (hosted CTA)</p>
+              <p className="font-medium">Website / form opt-in</p>
               <p>
-                Prospective users can request a demo or contact us through the public form at
-                {" "}
-                <a
-                  href="https://www.revenuebrain.ai/demo"
-                  className="text-indigo-600 underline hover:text-indigo-500"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  https://www.revenuebrain.ai/demo
-                </a>
-                . On this page, they provide their business details and mobile phone number and must
-                actively check an unchecked consent checkbox directly above the
-                {" "}
-                <span className="font-semibold">“Request Demo”</span>
-                {" "}
-                button in order to submit the form. This checkbox is required for submission and
-                records the user’s explicit consent to receive SMS messages. The consent language
-                explains:
+                Some participating businesses may use their own website forms or intake flows that
+                include an SMS consent disclosure similar to the sample language below. On these
+                forms, users provide their business or contact details and phone number and are
+                clearly informed about the types of messages they will receive, that message and
+                data rates may apply, that message frequency may vary, and that they can reply
+                <span className="font-mono font-semibold"> STOP</span> to opt out and
+                <span className="font-mono font-semibold"> HELP</span> for help.
               </p>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                <li>
-                  What types of messages they will receive (customer-care and service-related
-                  communication about Revenue Brain);
-                </li>
-                <li>That message and data rates may apply;</li>
-                <li>That message frequency may vary; and</li>
-                <li>
-                  That they can reply <span className="font-mono font-semibold">STOP</span> to opt out
-                  and <span className="font-mono font-semibold">HELP</span> for help.
-                </li>
-              </ul>
               <p className="mt-2">
-                Only users who submit this form with their phone number and see this disclosure
-                receive SMS messages related to their inquiry.
+                Only users who submit a form with this disclosure and provide their phone number
+                receive SMS messages related to their inquiry or service request.
               </p>
             </li>
             <li>
@@ -115,9 +92,10 @@ export default function SmsPolicyPage() {
           </p>
           <p>
             Ongoing SMS conversations occur only after an end user has provided explicit consent (for
-            example, by replying YES to the missed call consent message or by submitting the demo
-            form with the consent disclosure). Message frequency varies based on user engagement and
-            the number of missed calls or appointments requiring attention.
+            example, by replying YES to the missed call consent message or by submitting a website
+            or intake form that includes the consent disclosure described in this policy). Message
+            frequency varies based on user engagement and the number of missed calls or appointments
+            requiring attention.
           </p>
         </section>
 
@@ -146,7 +124,7 @@ export default function SmsPolicyPage() {
           </p>
           <p>
             <strong>
-              SMS consent is not shared with third parties or affiliates for marketing purposes.
+              SMS consent is not shared with third parties or affiliates for marketing or promotional purposes.
             </strong>{" "}
             We do not sell, rent, or share end users’ phone numbers or SMS message data with third
             parties for their own marketing purposes.
