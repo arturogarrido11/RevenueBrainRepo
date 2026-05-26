@@ -37,8 +37,6 @@ export default function SmsPolicyPage() {
         </section>
 
         <section className="space-y-3 text-sm text-slate-700 dark:text-slate-200">
-
-        <section className="space-y-3 text-sm text-slate-700 dark:text-slate-200">
           <h2 className="text-lg font-semibold">How end users consent to receive SMS messages</h2>
           <p>
             Revenue Brain uses SMS messaging only when end users have provided their phone number in
