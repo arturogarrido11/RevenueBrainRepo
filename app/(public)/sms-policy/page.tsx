@@ -162,3 +162,5 @@ export default function SmsPolicyPage() {
       </section>
     </PublicShell>
   );
+
+}
