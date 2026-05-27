@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BellRing, MessageSquareReply, CalendarCheck2, LineChart } from "lucide-react";
 import { PublicShell } from "@/components/layout/public-shell";
+import { MissedCallTextConsentSection } from "./cta-missed-call-consent";
 
 const features = [
   {
@@ -94,6 +95,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <MissedCallTextConsentSection />
 
       <section className="mt-10 rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Trusted by modern service teams</p>
