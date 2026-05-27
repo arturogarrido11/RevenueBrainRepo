@@ -22,6 +22,15 @@ export default function MissedCallConsentProofPage() {
             priority
           />
         </div>
+        <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+          <Image
+            src="/missed-call-consent-proof-alt.png"
+            alt="Alternate screenshot of Missed Call Text Consent / demo flow for Twilio proof."
+            width={1600}
+            height={900}
+            className="h-auto w-full"
+          />
+        </div>
       </div>
     </main>
   );
