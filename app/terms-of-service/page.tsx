@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function TermsOfServicePage() {
-  const lastUpdated = "March 5, 2026"
+  const lastUpdated = "May 20, 2026"
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
@@ -77,6 +77,30 @@ export default function TermsOfServicePage() {
           <p>
             We may update these terms from time to time. Continued use of the service after changes
             become effective constitutes acceptance of the revised terms.
+          </p>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-lg font-medium">9. SMS Program</h2>
+          <p>
+            Revenue Brain enables participating businesses to send SMS messages to customers in
+            connection with missed calls and related customer-care conversations. You are
+            responsible for ensuring that your use of SMS through Revenue Brain complies with
+            applicable telecom and privacy laws and that you configure your own campaigns and
+            templates in a compliant manner.
+          </p>
+          <p>
+            For the core missed call recovery program, the intended flow is: a caller misses a call
+            with a participating business, the caller may receive a single SMS message asking if
+            they would like help by text, and only if the caller replies YES may the business send
+            ongoing customer-care and conversational messages related to that inquiry (such as
+            appointment scheduling, service coordination, follow-up questions, or customer
+            support). No further messages should be sent if the caller does not reply.
+          </p>
+          <p>
+            Message frequency varies. Message and data rates may apply. Recipients can reply "STOP"
+            to opt out or "HELP" for help. Mobile opt-in data will not be shared with third parties
+            or affiliates for marketing or promotional purposes.
           </p>
         </section>
       </div>
