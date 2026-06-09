@@ -30,7 +30,7 @@ export default function LoginPage() {
     }
 
     const data = await res.json();
-    router.push(data.role === "super_admin" ? "/admin/businesses" : "/dashboard");
+    router.push(data.role === "super_admin" ? "/admin/businesses" : "/calls");
     router.refresh();
   }
 

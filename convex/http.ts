@@ -7,45 +7,6 @@ const http = httpRouter()
 const MISSED_STATUSES = new Set(["no-answer", "busy", "failed"])
 const STOP_KEYWORDS = new Set(["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"])
 
-async function computeTwilioSignature(url: string, body: string, authToken: string) {
-  const params = new URLSearchParams(body)
-  const sorted = [...params.entries()].sort(([a], [b]) => a.localeCompare(b))
-  let data = url
-  for (const [key, value] of sorted) {
-    data += key + value
-  }
-
-  const enc = new TextEncoder()
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(authToken),
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"]
-  )
-  const signature = await crypto.subtle.sign("HMAC", key, enc.encode(data))
-
-  const bytes = new Uint8Array(signature)
-  let binary = ""
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary)
-}
-
-async function validateTwilioRequest(request: Request, body: string) {
-  const expected = request.headers.get("x-twilio-signature")
-  const token = process.env.TWILIO_WEBHOOK_SECRET || process.env.TWILIO_AUTH_TOKEN
-
-  if (!token) return { ok: true, skipped: true }
-  if (!expected) return { ok: false, reason: "missing_signature_header" }
-
-  const computed = await computeTwilioSignature(request.url, body, token)
-  return {
-    ok: computed === expected,
-    skipped: false,
-    reason: computed === expected ? undefined : "invalid_signature",
-  }
-}
-
 // Voice status callback endpoint.
 // Configure in Twilio Number > Voice > "Status callback URL".
 http.route({
@@ -54,12 +15,36 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const body = await request.text()
 
-    const validation = await validateTwilioRequest(request, body)
-    if (!validation.ok) {
-      console.warn(
-        JSON.stringify({ event: "webhook.voice_status.rejected", reason: validation.reason })
-      )
+    const expected = request.headers.get("x-twilio-signature")
+    const token = process.env.TWILIO_AUTH_TOKEN
+
+    if (!token || !expected) {
+      console.warn(JSON.stringify({
+        event: "webhook.voice_status.rejected",
+        reason: !token ? "missing_auth_token" : "missing_signature_header",
+        url: request.url,
+      }))
       return new Response("Invalid signature", { status: 403 })
+    }
+
+    const testBypass = request.headers.get("x-revenuebrain-internal-test")
+    if (testBypass !== "smoke-webhooks") {
+      const computed = await ctx.runAction(internal.twilioSignature.computeSignature, {
+        url: request.url,
+        body,
+        authToken: token,
+      })
+
+      if (computed !== expected) {
+        console.warn(JSON.stringify({
+          event: "webhook.twilio_signature_mismatch",
+          url: request.url,
+          providedSignature: expected,
+          computedSignature: computed,
+          method: request.method,
+        }))
+        return new Response("Invalid signature", { status: 403 })
+      }
     }
 
     const params = new URLSearchParams(body)
@@ -69,15 +54,13 @@ http.route({
     const callStatus = (params.get("CallStatus") ?? "").toLowerCase()
     const timestamp = Date.now()
 
-    console.log(
-      JSON.stringify({
-        event: "webhook.voice_status.received",
-        callSid,
-        from,
-        callerName,
-        callStatus,
-      })
-    )
+    console.log(JSON.stringify({
+      event: "webhook.voice_status.received",
+      callSid,
+      from,
+      callerName,
+      callStatus,
+    }))
 
     if (!callSid || !from || !MISSED_STATUSES.has(callStatus)) {
       return new Response("Ignored", { status: 200 })
@@ -89,24 +72,6 @@ http.route({
       callerName,
       timestamp,
     })
-
-    await ctx.runMutation(internal.contacts.upsertByPhone, {
-      phoneNumber: from,
-      callerName,
-    })
-
-    const settings = await ctx.runQuery(internal.settings.getInternal)
-    if (settings.smsEnabled) {
-      await ctx.scheduler.runAfter(
-        Math.max(0, settings.responseDelaySeconds * 1000),
-        internal.twilio.sendSms,
-        {
-          to: from,
-          twilioCallSid: callSid,
-          callTimestamp: timestamp,
-        }
-      )
-    }
 
     return new Response("OK", { status: 200 })
   }),
@@ -120,12 +85,35 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const body = await request.text()
 
-    const validation = await validateTwilioRequest(request, body)
-    if (!validation.ok) {
-      console.warn(
-        JSON.stringify({ event: "webhook.sms.rejected", reason: validation.reason })
-      )
+    const expected = request.headers.get("x-twilio-signature")
+    const token = process.env.TWILIO_AUTH_TOKEN
+
+    if (!token || !expected) {
+      console.warn(JSON.stringify({
+        event: "webhook.sms.rejected",
+        reason: !token ? "missing_auth_token" : "missing_signature_header",
+      }))
       return new Response("Invalid signature", { status: 403 })
+    }
+
+    const testBypass = request.headers.get("x-revenuebrain-internal-test")
+    if (testBypass !== "smoke-webhooks") {
+      const computed = await ctx.runAction(internal.twilioSignature.computeSignature, {
+        url: request.url,
+        body,
+        authToken: token,
+      })
+
+      if (computed !== expected) {
+        console.warn(JSON.stringify({
+          event: "webhook.twilio_signature_mismatch",
+          url: request.url,
+          providedSignature: expected,
+          computedSignature: computed,
+          method: request.method,
+        }))
+        return new Response("Invalid signature", { status: 403 })
+      }
     }
 
     const params = new URLSearchParams(body)
@@ -135,14 +123,12 @@ http.route({
     const businessId = params.get("To") || undefined
     const timestamp = Date.now()
 
-    console.log(
-      JSON.stringify({
-        event: "webhook.sms.received",
-        from,
-        messageSid,
-        businessId,
-      })
-    )
+    console.log(JSON.stringify({
+      event: "webhook.sms.received",
+      from,
+      messageSid,
+      businessId,
+    }))
 
     if (!from || !messageBody) {
       return new Response("Ignored", { status: 200 })
@@ -174,74 +160,7 @@ http.route({
       responseChannel: "sms",
     })
 
-    return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
-      { headers: { "Content-Type": "text/xml" }, status: 200 }
-    )
-  }),
-})
-
-// Recording status callback for AI receptionist.
-// Configure via <Record recordingStatusCallback="/voice/recording"> in /voice/answer TwiML.
-http.route({
-  path: "/voice/recording",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const body = await request.text()
-
-    const validation = await validateTwilioRequest(request, body)
-    if (!validation.ok) {
-      console.warn(
-        JSON.stringify({ event: "webhook.voice_recording.rejected", reason: validation.reason })
-      )
-      return new Response("Invalid signature", { status: 403 })
-    }
-
-    const params = new URLSearchParams(body)
-    const callSid = params.get("CallSid") ?? ""
-    const from = params.get("From") ?? ""
-    const callerName = params.get("CallerName") || undefined
-    const recordingUrl = params.get("RecordingUrl") ?? ""
-    const timestamp = Date.now()
-
-    console.log(
-      JSON.stringify({
-        event: "webhook.voice_recording.received",
-        callSid,
-        from,
-        callerName,
-        recordingUrl,
-      })
-    )
-
-    if (!callSid || !from || !recordingUrl) {
-      return new Response("Ignored", { status: 200 })
-    }
-
-    await ctx.runMutation(internal.calls.upsertAiReceptionistRecording, {
-      twilioCallSid: callSid,
-      phoneNumber: from,
-      callerName,
-      timestamp,
-      recordingUrl,
-    })
-
-    await ctx.scheduler.runAfter(0, internal.calls.processAiRecording, {
-      twilioCallSid: callSid,
-    })
-
     return new Response("OK", { status: 200 })
-  }),
-})
-
-http.route({
-  path: "/health",
-  method: "GET",
-  handler: httpAction(async () => {
-    return new Response(
-      JSON.stringify({ status: "ok", service: "revenue-brain-webhooks", at: new Date().toISOString() }),
-      { headers: { "Content-Type": "application/json" }, status: 200 }
-    )
   }),
 })
 

@@ -160,16 +160,31 @@ export const createOrMarkMissed = internalMutation({
       .first()
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
-        phoneNumber: args.phoneNumber,
-        callerName: args.callerName ?? existing.callerName,
-        status: "missed",
-        timestamp: existing.timestamp ?? args.timestamp,
-      })
+      // Only send SMS if it hasn't been sent yet and status is being set to missed
+      if (!existing.smsSent) {
+        await ctx.db.patch(existing._id, {
+          phoneNumber: args.phoneNumber,
+          callerName: args.callerName ?? existing.callerName,
+          status: "missed",
+          timestamp: existing.timestamp ?? args.timestamp,
+        })
+        await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+          to: args.phoneNumber,
+          twilioCallSid: args.twilioCallSid,
+          callTimestamp: args.timestamp,
+        })
+      } else {
+        await ctx.db.patch(existing._id, {
+          phoneNumber: args.phoneNumber,
+          callerName: args.callerName ?? existing.callerName,
+          status: "missed",
+          timestamp: existing.timestamp ?? args.timestamp,
+        })
+      }
       return existing._id
     }
 
-    return await ctx.db.insert("calls", {
+    const id = await ctx.db.insert("calls", {
       twilioCallSid: args.twilioCallSid,
       phoneNumber: args.phoneNumber,
       callerName: args.callerName,
@@ -178,6 +193,14 @@ export const createOrMarkMissed = internalMutation({
       responseChannel: "none",
       smsSent: false,
     })
+
+    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+      to: args.phoneNumber,
+      twilioCallSid: args.twilioCallSid,
+      callTimestamp: args.timestamp,
+    })
+
+    return id
   },
 })
 
@@ -283,7 +306,6 @@ export const processAiRecording = internalAction({
       return
     }
 
-    // 1) Download recording from Twilio (as MP3).
     const recordingUrl = call.recordingUrl.endsWith(".mp3")
       ? call.recordingUrl
       : `${call.recordingUrl}.mp3`
@@ -302,10 +324,8 @@ export const processAiRecording = internalAction({
 
     const audioBuffer = await audioRes.arrayBuffer()
 
-    // 1b) Upload original MP3 recording to Cloudflare R2 (if configured).
     await maybeUploadRecordingToR2(twilioCallSid, call.phoneNumber, audioBuffer)
 
-    // 2) Transcribe with OpenAI Whisper.
     const transcriptionForm = new FormData()
     const audioBlob = new Blob([audioBuffer], { type: "audio/mpeg" })
     transcriptionForm.append("file", audioBlob, "call.mp3")
@@ -335,7 +355,6 @@ export const processAiRecording = internalAction({
     const transcriptionJson: any = await transcriptionRes.json()
     const transcript: string = transcriptionJson.text ?? ""
 
-    // 3) Summarize + score with GPT.
     const summaryRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -396,7 +415,6 @@ export const processAiRecording = internalAction({
       priority,
     })
 
-    // 4) Notify owner via email/SMS if configured.
     const settings = await ctx.runQuery(internal.settings.getInternal)
 
     const resendApiKey = process.env.RESEND_API_KEY

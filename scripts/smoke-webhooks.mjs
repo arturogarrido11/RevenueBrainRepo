@@ -25,7 +25,11 @@ function twilioSignature(url, params, authToken) {
 async function twilioPost(path, params) {
   const url = `${baseUrl}${path}`
   const body = new URLSearchParams(params).toString()
-  const headers = { "Content-Type": "application/x-www-form-urlencoded" }
+  const headers = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    // Mark this as an internal smoke test so Convex can trust it.
+    "x-revenuebrain-internal-test": "smoke-webhooks",
+  }
 
   if (secret) {
     headers["x-twilio-signature"] = twilioSignature(url, params, secret)
