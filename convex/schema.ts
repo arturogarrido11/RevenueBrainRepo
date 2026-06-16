@@ -80,4 +80,14 @@ export default defineSchema({
   })
     .index("by_timestamp", ["timestamp"])
     .index("by_phone", ["fromPhoneNumber"]),
+
+  messages: defineTable({
+    phoneNumber: v.string(),   // the contact phone number
+    direction: v.union(v.literal("outbound"), v.literal("inbound")),
+    body: v.string(),
+    timestamp: v.number(),
+    sentBy: v.optional(v.string()), // "auto" | "manual"
+  })
+    .index("by_phone", ["phoneNumber"])
+    .index("by_timestamp", ["timestamp"]),
 })
