@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server"
+import { query, mutation, internalMutation } from "./_generated/server"
 import { v } from "convex/values"
 
 export const getByPhone = query({
@@ -12,7 +12,7 @@ export const getByPhone = query({
   },
 })
 
-export const insert = mutation({
+export const insert = internalMutation({
   args: {
     phoneNumber: v.string(),
     direction: v.union(v.literal("outbound"), v.literal("inbound")),

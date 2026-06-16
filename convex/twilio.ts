@@ -39,7 +39,7 @@ export const sendSms = internalAction({
 
 export const sendManualSms = action({
   args: { to: v.string(), body: v.string() },
-  handler: async (_ctx, { to, body }) => {
+  handler: async (ctx, { to, body }) => {
     const accountSid = process.env.TWILIO_ACCOUNT_SID
     const authToken = process.env.TWILIO_AUTH_TOKEN
     const from = process.env.TWILIO_PHONE_NUMBER
@@ -51,6 +51,7 @@ export const sendManualSms = action({
       body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
     })
     if (!response.ok) { const text = await response.text(); throw new Error(`Twilio error ${response.status}: ${text}`) }
+    await ctx.runMutation(internal.messages.insert, { phoneNumber: to, direction: "outbound", body, sentBy: "manual" })
     console.log(JSON.stringify({ event: "twilio.manual_sms.success", to }))
     return { ok: true }
   },
