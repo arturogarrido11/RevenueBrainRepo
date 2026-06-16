@@ -533,3 +533,42 @@ export const updateFromAiProcessing = internalMutation({
     })
   },
 })
+
+export const listFiltered = query({
+  args: {
+    status: v.optional(v.union(
+      v.literal("missed"),
+      v.literal("responded"),
+      v.literal("pending"),
+      v.literal("ai_recorded"),
+    )),
+    search: v.optional(v.string()),
+    dateRange: v.optional(v.union(
+      v.literal("today"),
+      v.literal("7d"),
+      v.literal("30d"),
+      v.literal("month")
+    )),
+  },
+  handler: async (ctx, { status, search, dateRange }) => {
+    let calls = await ctx.db.query("calls").withIndex("by_timestamp").order("desc").collect()
+    if (status) calls = calls.filter((c) => c.status === status)
+    if (dateRange) {
+      const now = Date.now()
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+      const cutoffs: Record<string, number> = {
+        today: todayStart.getTime(),
+        "7d": now - 7 * 24 * 60 * 60 * 1000,
+        "30d": now - 30 * 24 * 60 * 60 * 1000,
+        month: new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime(),
+      }
+      const cutoff = cutoffs[dateRange]
+      if (cutoff) calls = calls.filter((c) => c.timestamp >= cutoff)
+    }
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase()
+      calls = calls.filter((c) => c.phoneNumber.toLowerCase().includes(q) || (c.callerName ?? "").toLowerCase().includes(q))
+    }
+    return calls
+  },
+})

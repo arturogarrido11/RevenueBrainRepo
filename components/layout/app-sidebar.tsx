@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Calls", href: "/calls", icon: PhoneMissed },
   { label: "Contacts", href: "/contacts", icon: Users },
 ]
