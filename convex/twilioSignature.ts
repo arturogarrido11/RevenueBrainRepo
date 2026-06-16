@@ -1,10 +1,10 @@
 "use node"
 
-import { action } from "./_generated/server"
+import { internalAction } from "./_generated/server"
 import { v } from "convex/values"
 import { createHmac } from "crypto"
 
-export const computeSignature = action({
+export const computeSignature = internalAction({
   args: {
     url: v.string(),
     body: v.string(),
