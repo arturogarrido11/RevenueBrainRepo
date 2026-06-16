@@ -10,19 +10,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Phone } from "lucide-react"
 
 const MAX_CHARS = 160
 
 export default function SettingsPage() {
   const settings = useQuery(api.settings.get)
   const upsertSettings = useMutation(api.settings.upsert)
-
   const [businessName, setBusinessName] = useState("My Business")
-  const [smsTemplate, setSmsTemplate] = useState(
-    "Hi! Sorry we missed your call. Reply here with what you need, or book here: {callback_url}"
-  )
+  const [smsTemplate, setSmsTemplate] = useState("Hi! Sorry we missed your call. Reply here with what you need, or book here: {callback_url}")
   const [smsEnabled, setSmsEnabled] = useState(true)
   const [responseDelaySeconds, setResponseDelaySeconds] = useState(0)
+  const [ownerEmail, setOwnerEmail] = useState("")
+  const [ownerAlertEmailEnabled, setOwnerAlertEmailEnabled] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -32,6 +32,8 @@ export default function SettingsPage() {
     setSmsTemplate(settings.smsTemplate)
     setSmsEnabled(settings.smsEnabled)
     setResponseDelaySeconds(settings.responseDelaySeconds)
+    setOwnerEmail(settings.ownerEmail ?? "")
+    setOwnerAlertEmailEnabled(settings.ownerAlertEmailEnabled ?? false)
   }, [settings])
 
   const responseDelayLabel = useMemo(() => {
@@ -41,19 +43,9 @@ export default function SettingsPage() {
   }, [responseDelaySeconds])
 
   async function handleSave() {
-    setSaving(true)
-    setSaved(false)
-    try {
-      await upsertSettings({
-        businessName,
-        smsTemplate,
-        smsEnabled,
-        responseDelaySeconds,
-      })
-      setSaved(true)
-    } finally {
-      setSaving(false)
-    }
+    setSaving(true); setSaved(false)
+    try { await upsertSettings({ businessName, smsTemplate, smsEnabled, responseDelaySeconds, ownerEmail, ownerAlertEmailEnabled }); setSaved(true) }
+    finally { setSaving(false) }
   }
 
   return (
@@ -64,77 +56,76 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground">Configure auto-response behavior for your business</p>
         </div>
 
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Phone className="size-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Your Business Number</p>
+              <p className="text-sm tabular-nums text-muted-foreground">Forward missed calls to this number to activate auto-reply</p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
-          <CardHeader>
-            <CardTitle>General</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>General</CardTitle></CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="business-name">Business Name</Label>
               <Input id="business-name" value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
             </div>
-
             <div className="flex items-center justify-between rounded-lg border border-border p-4">
               <div>
                 <p className="text-sm font-medium">Enable SMS Auto-Reply</p>
                 <p className="text-xs text-muted-foreground">Send a follow-up SMS when a call is missed</p>
               </div>
-              <button
-                role="switch"
-                aria-checked={smsEnabled}
-                onClick={() => setSmsEnabled((v) => !v)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${smsEnabled ? "bg-primary" : "bg-input"}`}
-              >
-                <span
-                  className={`pointer-events-none inline-block size-4 rounded-full bg-white shadow-lg transition-transform ${smsEnabled ? "translate-x-4" : "translate-x-0"}`}
-                />
+              <button role="switch" aria-checked={smsEnabled} onClick={() => setSmsEnabled((v) => !v)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${smsEnabled ? "bg-primary" : "bg-input"}`}>
+                <span className={`pointer-events-none inline-block size-4 rounded-full bg-white shadow-lg transition-transform ${smsEnabled ? "translate-x-4" : "translate-x-0"}`} />
               </button>
             </div>
-
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="response-delay">Response Delay (seconds)</Label>
-              <Input
-                id="response-delay"
-                type="number"
-                min={0}
-                value={responseDelaySeconds}
-                onChange={(e) => setResponseDelaySeconds(Math.max(0, Number(e.target.value) || 0))}
-              />
+              <Input id="response-delay" type="number" min={0} value={responseDelaySeconds} onChange={(e) => setResponseDelaySeconds(Math.max(0, Number(e.target.value) || 0))} />
               <p className="text-xs text-muted-foreground">Current: {responseDelayLabel}</p>
             </div>
-
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="sms-template">SMS Template</Label>
-              <Textarea
-                id="sms-template"
-                value={smsTemplate}
-                onChange={(e) => setSmsTemplate(e.target.value)}
-                className="min-h-[120px] resize-none"
-                maxLength={MAX_CHARS}
-              />
+              <Textarea id="sms-template" value={smsTemplate} onChange={(e) => setSmsTemplate(e.target.value)} className="min-h-[120px] resize-none" maxLength={MAX_CHARS} />
               <p className="text-xs text-muted-foreground">Variables: {"{business_name}"}, {"{caller_name}"}, {"{callback_url}"} · {smsTemplate.length}/{MAX_CHARS}</p>
             </div>
-
             <div className="flex items-center gap-2">
-              <Button onClick={handleSave} disabled={saving || !settings}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
+              <Button onClick={handleSave} disabled={saving || !settings}>{saving ? "Saving..." : "Save Changes"}</Button>
               {saved ? <span className="text-xs text-emerald-600">Saved</span> : null}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Legal</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Email Alerts</CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex items-center justify-between rounded-lg border border-border p-4">
+              <div>
+                <p className="text-sm font-medium">New Lead Email Alerts</p>
+                <p className="text-xs text-muted-foreground">Get emailed when a caller replies by SMS</p>
+              </div>
+              <button role="switch" aria-checked={ownerAlertEmailEnabled} onClick={() => setOwnerAlertEmailEnabled((v) => !v)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${ownerAlertEmailEnabled ? "bg-primary" : "bg-input"}`}>
+                <span className={`pointer-events-none inline-block size-4 rounded-full bg-white shadow-lg transition-transform ${ownerAlertEmailEnabled ? "translate-x-4" : "translate-x-0"}`} />
+              </button>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="owner-email">Alert Email Address</Label>
+              <Input id="owner-email" type="email" placeholder="you@yourbusiness.com" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} />
+            </div>
+            <Button onClick={handleSave} disabled={saving || !settings} className="w-fit">{saving ? "Saving..." : "Save Changes"}</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Legal</CardTitle></CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <Link href="/privacy-policy" className="text-primary hover:underline">
-              Privacy Policy
-            </Link>
-            <Link href="/terms-of-service" className="text-primary hover:underline">
-              Terms of Service
-            </Link>
+            <Link href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
+            <Link href="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link>
           </CardContent>
         </Card>
       </div>

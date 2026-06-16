@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, PhoneMissed, Users, Settings, Phone } from "lucide-react"
+import { LayoutDashboard, PhoneMissed, Users, Settings, Phone, MessageSquare } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +20,7 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Calls", href: "/calls", icon: PhoneMissed },
   { label: "Contacts", href: "/contacts", icon: Users },
+  { label: "SMS Replies", href: "/leads", icon: MessageSquare },
 ]
 
 const bottomNavItems = [

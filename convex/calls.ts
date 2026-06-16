@@ -1,4 +1,4 @@
-import { query, internalMutation, internalQuery, internalAction } from "./_generated/server"
+import { query, mutation, internalMutation, internalQuery, internalAction } from "./_generated/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
@@ -570,5 +570,12 @@ export const listFiltered = query({
       calls = calls.filter((c) => c.phoneNumber.toLowerCase().includes(q) || (c.callerName ?? "").toLowerCase().includes(q))
     }
     return calls
+  },
+})
+
+export const markHandled = mutation({
+  args: { callId: v.id("calls") },
+  handler: async (ctx, { callId }) => {
+    await ctx.db.patch(callId, { status: "responded" })
   },
 })
