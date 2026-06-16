@@ -121,7 +121,7 @@ export function CallsTable({ search = "", status = "all", dateRange = "all" }: C
                         <DropdownMenuItem onClick={() => setSmsTarget({ phoneNumber: call.phoneNumber, callerName: call.callerName })}>
                           <MessageSquare className="size-4" />Send SMS
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push(`/contacts?phone=${encodeURIComponent(call.phoneNumber)}`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/contacts/${encodeURIComponent(call.phoneNumber)}`)}>
                           <User className="size-4" />View Contact
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
