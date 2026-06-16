@@ -160,7 +160,17 @@ http.route({
       responseChannel: "sms",
     })
 
-    return new Response("OK", { status: 200 })
+    await ctx.runMutation(internal.messages.insert, {
+      phoneNumber: from,
+      direction: "inbound",
+      body: messageBody,
+      sentBy: "customer",
+    })
+
+    return new Response(
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+      { headers: { "Content-Type": "text/xml" }, status: 200 }
+    )
   }),
 })
 
