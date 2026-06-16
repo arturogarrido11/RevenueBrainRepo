@@ -80,6 +80,7 @@ export default function LeadsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">From</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Message</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Business #</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Time</th>
                   </tr>
                 </thead>
@@ -93,6 +94,7 @@ export default function LeadsPage() {
                       <td className="px-6 py-3 font-medium tabular-nums">{lead.fromPhoneNumber}</td>
                       <td className="px-4 py-3 text-muted-foreground max-w-sm"><p className="truncate">{lead.messageBody}</p></td>
                       <td className="px-4 py-3 text-muted-foreground tabular-nums">{lead.businessId ?? "—"}</td>
+                      <td className="px-4 py-3"><span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">New</span></td>
                       <td className="px-4 py-3 text-right text-muted-foreground">{formatRelativeTime(lead.timestamp)}</td>
                     </tr>
                   ))}
