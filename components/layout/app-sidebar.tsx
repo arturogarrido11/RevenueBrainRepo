@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { LayoutDashboard, PhoneMissed, Users, Settings, Phone, MessageSquare } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { LayoutDashboard, PhoneMissed, Users, Settings, Phone, MessageSquare, LogOut } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -21,18 +21,19 @@ const navItems = [
   { label: "Calls", href: "/calls", icon: PhoneMissed },
   { label: "Contacts", href: "/contacts", icon: Users },
   { label: "SMS Replies", href: "/leads", icon: MessageSquare },
-]
-
-const bottomNavItems = [
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  function handleLogout() {
+    router.push("/login")
+  }
 
   return (
     <Sidebar>
-      {/* Logo */}
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex h-10 items-center gap-2.5 px-2">
           <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
@@ -42,13 +43,12 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Primary nav */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map(({ label, href, icon: Icon }) => {
-                const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href)
+                const isActive = pathname.startsWith(href)
                 return (
                   <SidebarMenuItem key={href}>
                     <SidebarMenuButton asChild isActive={isActive}>
@@ -65,23 +65,15 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Bottom nav */}
       <SidebarSeparator />
       <SidebarFooter>
         <SidebarMenu>
-          {bottomNavItems.map(({ label, href, icon: Icon }) => {
-            const isActive = pathname.startsWith(href)
-            return (
-              <SidebarMenuItem key={href}>
-                <SidebarMenuButton asChild isActive={isActive}>
-                  <Link href={href}>
-                    <Icon className="size-4" />
-                    <span>{label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          })}
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout} className="cursor-pointer text-muted-foreground hover:text-foreground">
+              <LogOut className="size-4" />
+              <span>Log out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

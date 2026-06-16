@@ -1,10 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { useQuery } from "convex/react"
+import { useRouter } from "next/navigation"
 import { api } from "@/convex/_generated/api"
 import { AppShell } from "@/components/layout/app-shell"
 import { Card, CardContent } from "@/components/ui/card"
-import { MessageSquare } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { MessageSquare, X } from "lucide-react"
 
 function formatRelativeTime(timestamp: number): string {
   const diffMs = Date.now() - timestamp
@@ -15,18 +19,46 @@ function formatRelativeTime(timestamp: number): string {
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays === 1) return "yesterday"
-  return `${diffDays}d ago`
+  return new Date(timestamp).toLocaleDateString()
 }
 
 export default function LeadsPage() {
-  const leads = useQuery(api.leads.listRecent)
+  const router = useRouter()
+  const [dateRange, setDateRange] = useState("all")
+
+  const leads = useQuery(api.leads.listFiltered, {
+    dateRange: dateRange === "all" ? undefined : dateRange as "today" | "7d" | "30d" | "month",
+  })
+
+  const hasFilters = dateRange !== "all"
+
   return (
     <AppShell title="SMS Replies">
       <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">SMS Replies</h2>
-          <p className="text-sm text-muted-foreground">Inbound replies from customers who received your follow-up texts</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">SMS Replies</h2>
+            <p className="text-sm text-muted-foreground">Inbound replies from customers who received your follow-up texts</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-36"><SelectValue placeholder="Date range" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="month">This month</SelectItem>
+              </SelectContent>
+            </Select>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={() => setDateRange("all")}>
+                <X className="size-3.5" />Clear
+              </Button>
+            )}
+          </div>
         </div>
+
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             {leads === undefined ? (
@@ -53,7 +85,11 @@ export default function LeadsPage() {
                 </thead>
                 <tbody>
                   {leads.map((lead) => (
-                    <tr key={lead._id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
+                    <tr
+                      key={lead._id}
+                      className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
+                      onClick={() => router.push(`/contacts/${encodeURIComponent(lead.fromPhoneNumber)}`)}
+                    >
                       <td className="px-6 py-3 font-medium tabular-nums">{lead.fromPhoneNumber}</td>
                       <td className="px-4 py-3 text-muted-foreground max-w-sm"><p className="truncate">{lead.messageBody}</p></td>
                       <td className="px-4 py-3 text-muted-foreground tabular-nums">{lead.businessId ?? "—"}</td>
