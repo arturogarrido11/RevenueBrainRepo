@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from "convex/react"
+import { useRouter } from "next/navigation"
 import { api } from "@/convex/_generated/api"
 import { AppShell } from "@/components/layout/app-shell"
 import { StatCard } from "@/components/dashboard/stat-card"
@@ -27,6 +28,7 @@ function formatResponseTime(seconds?: number): string {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const stats = useQuery(api.calls.getStats)
   const recentCalls = useQuery(api.calls.listRecent)
   const recentLeads = useQuery(api.leads.listRecent)
@@ -42,13 +44,7 @@ export default function DashboardPage() {
     <AppShell title="Dashboard">
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-          <StatCard
-            title="Missed Today"
-            value={String(missedToday)}
-            description={`${trendDiff >= 0 ? "+" : ""}${trendDiff} vs yesterday`}
-            icon={PhoneMissed}
-            trend={{ value: `${trendDiff >= 0 ? "+" : ""}${trendDiff}`, direction: trendDiff >= 0 ? "up" : "down", positive: trendDiff <= 0 }}
-          />
+          <StatCard title="Missed Today" value={String(missedToday)} description={`${trendDiff >= 0 ? "+" : ""}${trendDiff} vs yesterday`} icon={PhoneMissed} trend={{ value: `${trendDiff >= 0 ? "+" : ""}${trendDiff}`, direction: trendDiff >= 0 ? "up" : "down", positive: trendDiff <= 0 }} />
           <StatCard title="Response Rate" value={`${Math.round(responseRate * 100)}%`} description="Callers who replied by SMS" icon={MessageSquare} />
           <StatCard title="Avg Response Time" value={formatResponseTime(avgResponseTime)} description="From missed call to SMS reply" icon={Clock} />
           <StatCard title="Total Contacts" value={String(totalContacts)} description="Unique callers tracked" icon={Users} />
@@ -59,17 +55,26 @@ export default function DashboardPage() {
             <CardContent className="p-0">
               {recentCalls === undefined ? <p className="px-6 py-4 text-sm text-muted-foreground">Loading…</p>
               : recentCalls.length === 0 ? <p className="px-6 py-4 text-sm text-muted-foreground">No calls yet.</p>
-              : <ul className="divide-y divide-border">{recentCalls.map((call) => (
-                <li key={call._id} className="flex items-center justify-between px-6 py-3 text-sm">
-                  <div><p className="font-medium">{call.callerName ?? "Unknown"}</p><p className="text-xs text-muted-foreground">{call.phoneNumber}</p></div>
-                  <div className="flex items-center gap-3">
-                    {call.status === "missed" && <Badge variant="destructive">Missed</Badge>}
-                    {call.status === "responded" && <Badge variant="default">Responded</Badge>}
-                    {call.status === "ai_recorded" && <Badge variant="outline">AI Recorded</Badge>}
-                    <span className="text-xs text-muted-foreground">{formatRelativeTime(call.timestamp)}</span>
-                  </div>
-                </li>
-              ))}</ul>}
+              : <ul className="divide-y divide-border">
+                {recentCalls.map((call) => (
+                  <li
+                    key={call._id}
+                    className="flex cursor-pointer items-center justify-between px-6 py-3 text-sm hover:bg-muted/40 transition-colors"
+                    onClick={() => router.push(`/contacts/${encodeURIComponent(call.phoneNumber)}`)}
+                  >
+                    <div>
+                      <p className="font-medium">{call.callerName ?? call.phoneNumber}</p>
+                      <p className="text-xs text-muted-foreground">{call.phoneNumber}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {call.status === "missed" && <Badge variant="destructive">Missed</Badge>}
+                      {call.status === "responded" && <Badge variant="default">Handled</Badge>}
+                      {call.status === "ai_recorded" && <Badge variant="outline">AI Recorded</Badge>}
+                      <span className="text-xs text-muted-foreground">{formatRelativeTime(call.timestamp)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>}
             </CardContent>
           </Card>
           <Card>
@@ -77,12 +82,21 @@ export default function DashboardPage() {
             <CardContent className="p-0">
               {recentLeads === undefined ? <p className="px-6 py-4 text-sm text-muted-foreground">Loading…</p>
               : recentLeads.length === 0 ? <p className="px-6 py-4 text-sm text-muted-foreground">No SMS replies yet. Once customers reply to your follow-up texts, they will appear here.</p>
-              : <ul className="divide-y divide-border">{recentLeads.map((lead) => (
-                <li key={lead._id} className="flex items-center justify-between px-6 py-3 text-sm">
-                  <div className="min-w-0"><p className="font-medium">{lead.fromPhoneNumber}</p><p className="truncate text-xs text-muted-foreground max-w-[220px]">{lead.messageBody}</p></div>
-                  <span className="ml-4 shrink-0 text-xs text-muted-foreground">{formatRelativeTime(lead.timestamp)}</span>
-                </li>
-              ))}</ul>}
+              : <ul className="divide-y divide-border">
+                {recentLeads.map((lead) => (
+                  <li
+                    key={lead._id}
+                    className="flex cursor-pointer items-center justify-between px-6 py-3 text-sm hover:bg-muted/40 transition-colors"
+                    onClick={() => router.push(`/contacts/${encodeURIComponent(lead.fromPhoneNumber)}`)}
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{lead.fromPhoneNumber}</p>
+                      <p className="truncate text-xs text-muted-foreground max-w-[220px]">{lead.messageBody}</p>
+                    </div>
+                    <span className="ml-4 shrink-0 text-xs text-muted-foreground">{formatRelativeTime(lead.timestamp)}</span>
+                  </li>
+                ))}
+              </ul>}
             </CardContent>
           </Card>
         </div>

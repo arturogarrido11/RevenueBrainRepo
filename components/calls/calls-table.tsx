@@ -79,7 +79,7 @@ function formatResponseTime(seconds?: number): string {
 export function CallsTable({ search = "", status = "all", dateRange = "all" }: CallsTableProps) {
   const router = useRouter()
   const [smsTarget, setSmsTarget] = useState<{ phoneNumber: string; callerName?: string } | null>(null)
-  const markHandled = useMutation(api.calls.markHandled)
+  const toggleHandled = useMutation(api.calls.toggleHandled)
   const calls = useQuery(api.calls.listFiltered, {
     search: search || undefined,
     status: (status !== "all" ? status : undefined) as CallStatus | undefined,
@@ -125,8 +125,8 @@ export function CallsTable({ search = "", status = "all", dateRange = "all" }: C
                           <User className="size-4" />View Contact
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => markHandled({ callId: call._id as Id<"calls"> })}>
-                          <CheckCircle className="size-4" />Mark as Handled
+                        <DropdownMenuItem onClick={() => toggleHandled({ callId: call._id as Id<"calls"> })}>
+                          <CheckCircle className="size-4" />{call.status === "responded" ? "Unmark Handled" : "Mark as Handled"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

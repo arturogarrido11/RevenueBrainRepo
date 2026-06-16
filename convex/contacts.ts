@@ -96,3 +96,13 @@ export const upsertByPhone = internalMutation({
     }
   },
 })
+
+export const getByPhonePublic = query({
+  args: { phoneNumber: v.string() },
+  handler: async (ctx, { phoneNumber }) => {
+    return await ctx.db
+      .query("contacts")
+      .withIndex("by_phone", (q) => q.eq("phoneNumber", phoneNumber))
+      .first()
+  },
+})

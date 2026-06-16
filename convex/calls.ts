@@ -579,3 +579,24 @@ export const markHandled = mutation({
     await ctx.db.patch(callId, { status: "responded" })
   },
 })
+
+export const getCallsByPhone = query({
+  args: { phoneNumber: v.string() },
+  handler: async (ctx, { phoneNumber }) => {
+    return await ctx.db
+      .query("calls")
+      .withIndex("by_phone", (q) => q.eq("phoneNumber", phoneNumber))
+      .order("desc")
+      .collect()
+  },
+})
+
+export const toggleHandled = mutation({
+  args: { callId: v.id("calls") },
+  handler: async (ctx, { callId }) => {
+    const call = await ctx.db.get(callId)
+    if (!call) return
+    const newStatus = call.status === "responded" ? "missed" : "responded"
+    await ctx.db.patch(callId, { status: newStatus })
+  },
+})
