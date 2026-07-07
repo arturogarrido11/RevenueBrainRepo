@@ -30,6 +30,7 @@ export const sendSms = internalAction({
     const responseText = await response.text()
     if (response.ok) {
       await ctx.runMutation(internal.calls.markSmsSent, { twilioCallSid, smsBody: body })
+      await ctx.runMutation(internal.messages.insert, { phoneNumber: to, direction: "outbound", body, sentBy: "auto" })
       console.log(JSON.stringify({ event: "twilio.send_sms.success", twilioCallSid }))
     } else {
       console.error(JSON.stringify({ event: "twilio.send_sms.error", twilioCallSid, status: response.status, error: responseText }))

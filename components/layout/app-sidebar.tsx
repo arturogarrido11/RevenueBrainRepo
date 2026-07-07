@@ -28,8 +28,10 @@ export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
-  function handleLogout() {
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" })
     router.push("/login")
+    router.refresh()
   }
 
   return (
