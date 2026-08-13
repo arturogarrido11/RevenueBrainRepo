@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell"
 import { CallsFilters } from "@/components/calls/calls-filters"
 import { CallsTable } from "@/components/calls/calls-table"
 import { Button } from "@/components/ui/button"
+import { LeadsTable } from "@/components/leads/leads-table"
 
 export default function CallsPage() {
   const [search, setSearch] = useState("")
@@ -24,6 +25,10 @@ export default function CallsPage() {
         </div>
         <CallsFilters search={search} status={status} dateRange={dateRange} onSearchChange={setSearch} onStatusChange={setStatus} onDateRangeChange={setDateRange} />
         <CallsTable search={search} status={status} dateRange={dateRange} />
+
+        <div className="mt-8">
+          <LeadsTable />
+        </div>
       </div>
     </AppShell>
   )
