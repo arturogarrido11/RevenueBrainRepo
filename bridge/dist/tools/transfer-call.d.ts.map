@@ -1,0 +1,1 @@
+{"version":3,"file":"transfer-call.d.ts","sourceRoot":"","sources":["../../src/tools/transfer-call.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,eAAe,CAAA;AAEjD,UAAU,gBAAgB;IACxB,MAAM,EAAE,MAAM,CAAA;CACf;AAED,wBAAsB,mBAAmB,CACvC,IAAI,EAAE,gBAAgB,EACtB,KAAK,EAAE,YAAY,GAClB,OAAO,CAAC,MAAM,CAAC,CA8DjB;AAED,eAAO,MAAM,sBAAsB;;;;;;;;;;;;;;CAelC,CAAA"}

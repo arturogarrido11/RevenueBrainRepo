@@ -1,0 +1,212 @@
+import { httpRouter } from "convex/server"
+import { httpAction } from "./_generated/server"
+import { internal } from "./_generated/api"
+
+const http = httpRouter()
+
+const MISSED_STATUSES = new Set(["no-answer", "busy", "failed"])
+const STOP_KEYWORDS = new Set(["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"])
+
+async function computeTwilioSignature(url: string, body: string, authToken: string) {
+  // Twilio webhook signature algorithm:
+  // - Start with the full URL (including query string) exactly as Twilio used it.
+  // - For POST with application/x-www-form-urlencoded, append all POST fields
+  //   sorted by key, concatenating key + value to the URL string.
+  const params = new URLSearchParams(body)
+  const sortedKeys = Array.from(params.keys()).sort()
+
+  let dataString = url
+  for (const key of sortedKeys) {
+    dataString += key + (params.get(key) || "")
+  }
+
+  const hmac = createHmac("sha1", authToken)
+  hmac.update(dataString)
+  return hmac.digest("base64")
+}
+
+async function validateTwilioRequest(request: Request, body: string) {
+  // Allow trusted internal smoke tests to bypass signature validation.
+  const testBypass = request.headers.get("x-revenuebrain-internal-test")
+  if (testBypass === "smoke-webhooks") {
+    return { ok: true, skipped: true }
+  }
+
+  const expected = request.headers.get("x-twilio-signature")
+  // For now we rely solely on the Twilio Auth Token as the signing key.
+  // If we ever introduce a separate webhook secret, it should be wired
+  // explicitly via config rather than overloading a second env var.
+  const token = process.env.TWILIO_AUTH_TOKEN
+
+  console.log(
+    JSON.stringify({
+      event: "webhook.twilio_token_debug",
+      hasWebhookSecret: Boolean(process.env.TWILIO_WEBHOOK_SECRET),
+      hasAuthToken: Boolean(process.env.TWILIO_AUTH_TOKEN),
+      tokenLength: token ? token.length : 0,
+      tokenPrefix: token ? token.slice(0, 6) : null,
+    })
+  )
+
+  if (!token) return { ok: true, skipped: true }
+  if (!expected) return { ok: false, skipped: false, reason: "missing_signature_header" }
+
+  const computed = await computeTwilioSignature(request.url, body, token)
+  const ok = computed === expected
+
+  if (!ok) {
+    console.warn(
+      JSON.stringify({
+        event: "webhook.twilio_signature_mismatch",
+        url: request.url,
+        providedSignature: expected,
+        computedSignature: computed,
+        method: request.method,
+      })
+    )
+  }
+
+  return {
+    ok,
+    skipped: false,
+    reason: ok ? undefined : "invalid_signature",
+  }
+}
+
+// Voice status callback endpoint.
+// Configure in Twilio Number > Voice > "Status callback URL".
+http.route({
+  path: "/voice/status",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const body = await request.text()
+
+    console.log(
+      JSON.stringify({
+        event: "webhook.voice_status.raw_body_debug",
+        url: request.url,
+        body,
+        signature: request.headers.get("x-twilio-signature"),
+      })
+    )
+
+    const validation = await validateTwilioRequest(request, body)
+    if (!validation.ok) {
+      console.warn(
+        JSON.stringify({
+          event: "webhook.voice_status.rejected",
+          reason: validation.reason,
+          url: request.url,
+          signature: request.headers.get("x-twilio-signature"),
+        })
+      )
+      return new Response("Invalid signature", { status: 403 })
+    }
+
+    const params = new URLSearchParams(body)
+
+    console.log(
+      JSON.stringify({
+        event: "webhook.voice_status.debug_params",
+        url: request.url,
+        keys: Array.from(params.keys()),
+      })
+    )
+    const callSid = params.get("CallSid") ?? ""
+    const from = params.get("From") ?? ""
+    const callerName = params.get("CallerName") || undefined
+    const callStatus = (params.get("CallStatus") ?? "").toLowerCase()
+    const timestamp = Date.now()
+
+    console.log(
+      JSON.stringify({
+        event: "webhook.voice_status.received",
+        callSid,
+        from,
+        callerName,
+        callStatus,
+      })
+    )
+
+    if (!callSid || !from || !MISSED_STATUSES.has(callStatus)) {
+      return new Response("Ignored", { status: 200 })
+    }
+
+    await ctx.runMutation(internal.calls.createOrMarkMissed, {
+      twilioCallSid: callSid,
+      phoneNumber: from,
+      callerName,
+      timestamp,
+    })
+
+    return new Response("OK", { status: 200 })
+  }),
+})
+
+// Inbound SMS webhook endpoint.
+// Configure in Twilio Number > Messaging > "A message comes in".
+http.route({
+  path: "/sms",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const body = await request.text()
+
+    const validation = await validateTwilioRequest(request, body)
+    if (!validation.ok) {
+      console.warn(
+        JSON.stringify({ event: "webhook.sms.rejected", reason: validation.reason })
+      )
+      return new Response("Invalid signature", { status: 403 })
+    }
+
+    const params = new URLSearchParams(body)
+    const from = params.get("From") ?? ""
+    const messageBody = params.get("Body") ?? ""
+    const messageSid = params.get("MessageSid") || undefined
+    const businessId = params.get("To") || undefined
+    const timestamp = Date.now()
+
+    console.log(
+      JSON.stringify({
+        event: "webhook.sms.received",
+        from,
+        messageSid,
+        businessId,
+      })
+    )
+
+    if (!from || !messageBody) {
+      return new Response("Ignored", { status: 200 })
+    }
+
+    const normalizedBody = messageBody.trim().toUpperCase()
+    if (STOP_KEYWORDS.has(normalizedBody)) {
+      await ctx.runMutation(internal.contacts.setOptOutByPhone, {
+        phoneNumber: from,
+        optedOut: true,
+      })
+
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Message>You are unsubscribed and will no longer receive messages.</Message></Response>`,
+        { headers: { "Content-Type": "text/xml" }, status: 200 }
+      )
+    }
+
+    await ctx.runMutation(internal.calls.recordInboundSmsLead, {
+      fromPhoneNumber: from,
+      messageBody,
+      timestamp,
+      businessId,
+      twilioMessageSid: messageSid,
+    })
+
+    await ctx.runMutation(internal.contacts.upsertByPhone, {
+      phoneNumber: from,
+      responseChannel: "sms",
+    })
+
+    return new Response("OK", { status: 200 })
+  }),
+})
+
+export default http

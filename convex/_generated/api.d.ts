@@ -8,13 +8,16 @@
  * @module
  */
 
+import type * as appointments from "../appointments.js";
 import type * as calls from "../calls.js";
 import type * as contacts from "../contacts.js";
 import type * as http from "../http.js";
 import type * as leads from "../leads.js";
 import type * as messages from "../messages.js";
+import type * as receptionist_config from "../receptionist_config.js";
 import type * as settings from "../settings.js";
 import type * as twilio from "../twilio.js";
+import type * as twilioSignature from "../twilioSignature.js";
 
 import type {
   ApiFromModules,
@@ -23,13 +26,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  appointments: typeof appointments;
   calls: typeof calls;
   contacts: typeof contacts;
   http: typeof http;
   leads: typeof leads;
   messages: typeof messages;
+  receptionist_config: typeof receptionist_config;
   settings: typeof settings;
   twilio: typeof twilio;
+  twilioSignature: typeof twilioSignature;
 }>;
 
 /**

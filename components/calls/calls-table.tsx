@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 
-type CallStatus = "missed" | "responded" | "pending" | "ai_recorded"
+type CallStatus = "missed" | "responded" | "pending" | "ai_recorded" | "answered_ai"
 interface CallsTableProps { search?: string; status?: string; dateRange?: string }
 interface SmsModalProps { phoneNumber: string; callerName?: string; onClose: () => void }
 

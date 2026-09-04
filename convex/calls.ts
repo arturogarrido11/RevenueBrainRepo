@@ -534,6 +534,87 @@ export const updateFromAiProcessing = internalMutation({
   },
 })
 
+// ── AI Receptionist — create session record at call start ────────────────────
+export const createAiSession = internalMutation({
+  args: {
+    twilioCallSid: v.string(),
+    phoneNumber: v.string(),
+    callerName: v.optional(v.string()),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("calls")
+      .withIndex("by_callSid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        phoneNumber: args.phoneNumber,
+        callerName: args.callerName ?? existing.callerName,
+        status: "pending",
+        type: "ai_receptionist",
+        channel: "voice",
+      })
+      return existing._id
+    }
+
+    return await ctx.db.insert("calls", {
+      twilioCallSid: args.twilioCallSid,
+      phoneNumber: args.phoneNumber,
+      callerName: args.callerName,
+      timestamp: args.timestamp,
+      status: "pending",
+      responseChannel: "none",
+      smsSent: false,
+      type: "ai_receptionist",
+      channel: "voice",
+    })
+  },
+})
+
+// ── AI Receptionist — update record when Realtime session ends ────────────────
+export const updateFromRealtimeSession = internalMutation({
+  args: {
+    twilioCallSid: v.string(),
+    aiSessionId: v.optional(v.string()),
+    transcript: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    priority: v.optional(
+      v.union(v.literal("hot"), v.literal("warm"), v.literal("low"))
+    ),
+    callOutcome: v.optional(v.union(
+      v.literal("answered_ai"),
+      v.literal("transferred"),
+      v.literal("voicemail_captured"),
+      v.literal("appointment_scheduled"),
+      v.literal("abandoned")
+    )),
+    callDurationSec: v.optional(v.number()),
+    appointmentId: v.optional(v.id("appointments")),
+  },
+  handler: async (ctx, { twilioCallSid, ...update }) => {
+    const call = await ctx.db
+      .query("calls")
+      .withIndex("by_callSid", (q) => q.eq("twilioCallSid", twilioCallSid))
+      .first()
+
+    if (!call) {
+      console.warn(JSON.stringify({
+        event: "ai_receptionist.update_skipped",
+        reason: "call_not_found",
+        twilioCallSid,
+      }))
+      return
+    }
+
+    await ctx.db.patch(call._id, {
+      status: "answered_ai",
+      ...update,
+    })
+  },
+})
+
 export const listFiltered = query({
   args: {
     status: v.optional(v.union(
@@ -541,6 +622,7 @@ export const listFiltered = query({
       v.literal("responded"),
       v.literal("pending"),
       v.literal("ai_recorded"),
+      v.literal("answered_ai"),
     )),
     search: v.optional(v.string()),
     dateRange: v.optional(v.union(

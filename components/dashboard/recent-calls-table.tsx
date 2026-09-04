@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 
-type CallStatus = "missed" | "responded" | "pending" | "ai_recorded"
+type CallStatus = "missed" | "responded" | "pending" | "ai_recorded" | "answered_ai"
 type ResponseChannel = "sms" | "email" | "none"
 
 interface Call {

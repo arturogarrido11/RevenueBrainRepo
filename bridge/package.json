@@ -1,0 +1,24 @@
+{
+  "name": "revenuebrain-bridge",
+  "version": "1.0.0",
+  "description": "WebSocket bridge: Twilio Media Streams ↔ OpenAI Realtime API for Revenue Brain AI Voice Receptionist",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --esm src/index.ts"
+  },
+  "dependencies": {
+    "@fastify/websocket": "^11.0.0",
+    "fastify": "^5.12.3",
+    "alawmulaw": "^6.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}
