@@ -71,7 +71,7 @@ export interface SessionState {
 }
 
 // OpenAI Realtime API WebSocket URL
-const OPENAI_WS_URL = `wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1`
+const OPENAI_WS_URL = `wss://api.openai.com/v1/realtime?model=gpt-realtime`
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fetch config from Convex

@@ -13,7 +13,7 @@ import { mulawToPcm16, pcm16ToMulaw } from "./audio.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { TOOL_DEFINITIONS, dispatchTool } from "./tools/index.js";
 // OpenAI Realtime API WebSocket URL
-const OPENAI_WS_URL = `wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1`;
+const OPENAI_WS_URL = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
 // ─────────────────────────────────────────────────────────────────────────────
 // Fetch config from Convex
 // ─────────────────────────────────────────────────────────────────────────────
