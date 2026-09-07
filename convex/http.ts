@@ -52,7 +52,7 @@ function parseHour(hhmm: string): number {
 
 function buildStreamTwiml(bridgeWssUrl: string, callSid: string, from: string): string {
   const base = bridgeWssUrl.replace(/\/media-stream\/?$/, "").replace(/\/+$/, "")
-  const url = `${base}/media-stream?callSid=${encodeURIComponent(callSid)}&from=${encodeURIComponent(from)}`
+  const url = `${base}/media-stream?callSid=${encodeURIComponent(callSid)}&amp;from=${encodeURIComponent(from)}`
   return `<Response><Connect><Stream url="${url}" /></Connect></Response>`
 }
 
