@@ -215,6 +215,7 @@ export async function handleSession(
   })
 
   let streamSid = ""
+  const audioBuffer: string[] = []  // buffers base64 mulaw payloads until streamSid is known
 
   // Pending function call accumulator (for streaming args)
   const pendingCalls = new Map<string, { callId: string; name: string; args: string }>()
@@ -271,12 +272,18 @@ export async function handleSession(
     // ── Audio output → encode and forward to Twilio ──────────────────────
     if (eventType === "response.audio.delta") {
       const delta = msg.delta as string | undefined
-      if (!delta || !streamSid) return
+      if (!delta) return
 
       try {
         const pcm16Buf = Buffer.from(delta, "base64")
         const mulawBuf = pcm16ToMulaw(pcm16Buf)
         const payload = mulawBuf.toString("base64")
+
+        if (!streamSid) {
+          // streamSid not yet received — buffer until Twilio sends "start"
+          audioBuffer.push(payload)
+          return
+        }
 
         const mediaMsg = JSON.stringify({
           event: "media",
@@ -417,7 +424,15 @@ export async function handleSession(
     if (event === "start") {
       const startData = msg.start as { streamSid?: string; callSid?: string } | undefined
       streamSid = startData?.streamSid ?? ""
-      console.log(JSON.stringify({ event: "twilio.stream_start", callSid, streamSid }))
+      console.log(JSON.stringify({ event: "twilio.stream_start", callSid, streamSid, buffered: audioBuffer.length }))
+
+      // Flush any audio that arrived before streamSid was known
+      if (audioBuffer.length > 0 && twilioWs.readyState === WebSocket.OPEN) {
+        for (const payload of audioBuffer) {
+          twilioWs.send(JSON.stringify({ event: "media", streamSid, media: { payload } }))
+        }
+        audioBuffer.length = 0
+      }
       return
     }
 

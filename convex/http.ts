@@ -51,8 +51,9 @@ function parseHour(hhmm: string): number {
   return parseInt(hhmm.split(":")[0], 10)
 }
 
-function buildStreamTwiml(bridgeWssUrl: string): string {
-  return `<Response><Connect><Stream url="${bridgeWssUrl}" /></Connect></Response>`
+function buildStreamTwiml(bridgeWssUrl: string, callSid: string, from: string): string {
+  const url = `${bridgeWssUrl}?callSid=${encodeURIComponent(callSid)}&from=${encodeURIComponent(from)}`
+  return `<Response><Connect><Stream url="${url}" /></Connect></Response>`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ http.route({
 
     // ── Mode: always_on ──────────────────────────────────────────────────────
     if (triggerMode === "always_on") {
-      return twiml(buildStreamTwiml(bridgeWssUrl))
+      return twiml(buildStreamTwiml(bridgeWssUrl, callSid, from))
     }
 
     // ── Mode: after_hours ────────────────────────────────────────────────────
@@ -126,7 +127,7 @@ http.route({
         )
       }
       // After hours (or no forward number configured) → AI answers
-      return twiml(buildStreamTwiml(bridgeWssUrl))
+      return twiml(buildStreamTwiml(bridgeWssUrl, callSid, from))
     }
 
     // ── Mode: missed_only ────────────────────────────────────────────────────
@@ -143,7 +144,7 @@ http.route({
     }
 
     // No forward number configured for missed_only → AI answers directly
-    return twiml(buildStreamTwiml(bridgeWssUrl))
+    return twiml(buildStreamTwiml(bridgeWssUrl, callSid, from))
   }),
 })
 
@@ -180,7 +181,7 @@ http.route({
     }
 
     // no-answer / busy / failed → AI takes over
-    return twiml(buildStreamTwiml(bridgeWssUrl))
+    return twiml(buildStreamTwiml(bridgeWssUrl, callSid, from))
   }),
 })
 

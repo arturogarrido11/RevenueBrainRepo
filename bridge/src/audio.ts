@@ -20,7 +20,7 @@ const { MulawCodec } = require("alawmulaw") as {
   }
 }
 
-const UPSAMPLE_FACTOR = 2  // 8kHz → 16kHz
+const UPSAMPLE_FACTOR = 3  // 8kHz → 24kHz (OpenAI Realtime pcm16 output is 24kHz)
 
 /**
  * Decode μ-law 8kHz bytes → PCM 16-bit little-endian at 16kHz.

@@ -140,6 +140,7 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
         },
     });
     let streamSid = "";
+    const audioBuffer = []; // buffers base64 mulaw payloads until streamSid is known
     // Pending function call accumulator (for streaming args)
     const pendingCalls = new Map();
     // Max call duration enforcer
@@ -188,12 +189,17 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
         // ── Audio output → encode and forward to Twilio ──────────────────────
         if (eventType === "response.audio.delta") {
             const delta = msg.delta;
-            if (!delta || !streamSid)
+            if (!delta)
                 return;
             try {
                 const pcm16Buf = Buffer.from(delta, "base64");
                 const mulawBuf = pcm16ToMulaw(pcm16Buf);
                 const payload = mulawBuf.toString("base64");
+                if (!streamSid) {
+                    // streamSid not yet received — buffer until Twilio sends "start"
+                    audioBuffer.push(payload);
+                    return;
+                }
                 const mediaMsg = JSON.stringify({
                     event: "media",
                     streamSid,
@@ -316,7 +322,14 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
         if (event === "start") {
             const startData = msg.start;
             streamSid = startData?.streamSid ?? "";
-            console.log(JSON.stringify({ event: "twilio.stream_start", callSid, streamSid }));
+            console.log(JSON.stringify({ event: "twilio.stream_start", callSid, streamSid, buffered: audioBuffer.length }));
+            // Flush any audio that arrived before streamSid was known
+            if (audioBuffer.length > 0 && twilioWs.readyState === WebSocket.OPEN) {
+                for (const payload of audioBuffer) {
+                    twilioWs.send(JSON.stringify({ event: "media", streamSid, media: { payload } }));
+                }
+                audioBuffer.length = 0;
+            }
             return;
         }
         if (event === "media") {
