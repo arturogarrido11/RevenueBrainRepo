@@ -210,7 +210,6 @@ export async function handleSession(
   const openaiWs = new WebSocket(OPENAI_WS_URL, {
     headers: {
       Authorization: `Bearer ${openaiApiKey}`,
-      "OpenAI-Beta": "realtime=v1",
     },
   })
 

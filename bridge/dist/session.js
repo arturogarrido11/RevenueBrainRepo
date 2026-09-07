@@ -136,7 +136,6 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
     const openaiWs = new WebSocket(OPENAI_WS_URL, {
         headers: {
             Authorization: `Bearer ${openaiApiKey}`,
-            "OpenAI-Beta": "realtime=v1",
         },
     });
     let streamSid = "";
