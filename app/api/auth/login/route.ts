@@ -9,7 +9,16 @@ export async function POST(request: Request) {
     await request.json().catch(() => ({}));
 
     // For now we always treat the user as an owner and send them to /calls.
-    return NextResponse.json({ role: "owner" }, { status: 200 });
+    const sessionSecret = process.env.SESSION_SECRET ?? "dev-session-secret";
+    const response = NextResponse.json({ role: "owner" }, { status: 200 });
+    response.cookies.set("rb_session", sessionSecret, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+    return response;
   } catch (error) {
     console.error(
       JSON.stringify({
