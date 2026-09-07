@@ -12,8 +12,9 @@
  * the spec's stated "16kHz" target.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { MulawCodec } = require("alawmulaw") as {
+import { createRequire } from "node:module"
+const _require = createRequire(import.meta.url)
+const { MulawCodec } = _require("alawmulaw") as {
   MulawCodec: {
     decode: (samples: Uint8Array) => Int16Array
     encode: (samples: Int16Array) => Uint8Array

@@ -11,8 +11,9 @@
  * sped-up or slow, change UPSAMPLE_FACTOR to 3. The value of 2 matches
  * the spec's stated "16kHz" target.
  */
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { MulawCodec } = require("alawmulaw");
+import { createRequire } from "node:module";
+const _require = createRequire(import.meta.url);
+const { MulawCodec } = _require("alawmulaw");
 const UPSAMPLE_FACTOR = 3; // 8kHz → 24kHz (OpenAI Realtime pcm16 output is 24kHz)
 /**
  * Decode μ-law 8kHz bytes → PCM 16-bit little-endian at 16kHz.
