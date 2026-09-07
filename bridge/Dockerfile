@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY dist/ ./dist/
-COPY test-openai.js ./
+COPY test-openai.cjs ./
 
 EXPOSE 3001
 
