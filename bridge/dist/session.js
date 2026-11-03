@@ -157,6 +157,7 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
         openaiWs.send(JSON.stringify({
             type: "session.update",
             session: {
+                type: "realtime",
                 voice: "shimmer",
                 instructions: systemPrompt,
                 input_audio_format: "pcm16",
@@ -171,7 +172,7 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
         openaiWs.send(JSON.stringify({
             type: "response.create",
             response: {
-                modalities: ["audio"],
+                output_modalities: ["audio"],
                 instructions: "Greet the caller with your opening greeting now.",
             },
         }));
@@ -283,6 +284,7 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
             openaiWs.send(JSON.stringify({
                 type: "session.update",
                 session: {
+                    type: "realtime",
                     input_audio_transcription: { model: "whisper-1" },
                 },
             }));
