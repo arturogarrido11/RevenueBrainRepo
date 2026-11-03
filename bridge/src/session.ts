@@ -238,14 +238,20 @@ export async function handleSession(
       type: "session.update",
       session: {
         type: "realtime",
-        voice: "shimmer",
         instructions: systemPrompt,
-        input_audio_format: "pcm16",
-        output_audio_format: "pcm16",
-        turn_detection: { type: "semantic_vad" },
+        output_modalities: ["audio"],
         tools: TOOL_DEFINITIONS,
         tool_choice: "auto",
-        temperature: 0.8,
+        audio: {
+          input: {
+            format: { type: "audio/pcm", rate: 24000 },
+            turn_detection: { type: "semantic_vad" },
+          },
+          output: {
+            format: { type: "audio/pcm", rate: 24000 },
+            voice: "shimmer",
+          },
+        },
       },
     }))
 
@@ -270,7 +276,7 @@ export async function handleSession(
     const eventType = msg.type as string
 
     // ── Audio output → encode and forward to Twilio ──────────────────────
-    if (eventType === "response.audio.delta") {
+    if (eventType === "response.audio.delta" || eventType === "response.output_audio.delta") {
       const delta = msg.delta as string | undefined
       if (!delta) return
 
@@ -358,7 +364,7 @@ export async function handleSession(
     }
 
     // ── Transcript (for logging) ──────────────────────────────────────────
-    if (eventType === "response.audio_transcript.done") {
+    if (eventType === "response.audio_transcript.done" || eventType === "response.output_audio_transcript.done") {
       const transcript = msg.transcript as string
       if (transcript) {
         state.transcript = (state.transcript ? state.transcript + "\n" : "") + `AI: ${transcript}`
@@ -381,7 +387,11 @@ export async function handleSession(
         type: "session.update",
         session: {
           type: "realtime",
-          input_audio_transcription: { model: "whisper-1" },
+          audio: {
+            input: {
+              transcription: { model: "whisper-1" },
+            },
+          },
         },
       }))
       return
