@@ -57,10 +57,11 @@ server.get("/media-stream", { websocket: true }, (socket, req) => {
     })
   )
 
+  // callSid may be empty here — Twilio does not pass query params in the
+  // WebSocket URL. The real callSid arrives in Twilio's "start" message.
+  // handleSession reads it from there and updates state.
   if (!callSid) {
-    console.warn(JSON.stringify({ event: "bridge.missing_callsid" }))
-    socket.close()
-    return
+    console.log(JSON.stringify({ event: "bridge.callsid_from_start_message" }))
   }
 
   // Delegate to session handler — it manages its own lifecycle

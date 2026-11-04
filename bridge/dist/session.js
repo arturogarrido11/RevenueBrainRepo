@@ -333,7 +333,12 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
         if (event === "start") {
             const startData = msg.start;
             streamSid = startData?.streamSid ?? "";
-            console.log(JSON.stringify({ event: "twilio.stream_start", callSid, streamSid, buffered: audioBuffer.length }));
+            // Twilio sends the real callSid here — URL query params are stripped by Twilio
+            if (!state.callSid && startData?.callSid) {
+                state.callSid = startData.callSid;
+            }
+            const resolvedCallSid = state.callSid;
+            console.log(JSON.stringify({ event: "twilio.stream_start", callSid: resolvedCallSid, streamSid, buffered: audioBuffer.length }));
             // Flush any audio that arrived before streamSid was known
             if (audioBuffer.length > 0 && twilioWs.readyState === WebSocket.OPEN) {
                 for (const payload of audioBuffer) {
