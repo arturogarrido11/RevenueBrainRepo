@@ -13,7 +13,7 @@
  */
 import { createRequire } from "node:module";
 const _require = createRequire(import.meta.url);
-const { MulawCodec } = _require("alawmulaw");
+const { mulaw } = _require("alawmulaw/dist/alawmulaw.js");
 const UPSAMPLE_FACTOR = 3; // 8kHz → 24kHz (OpenAI Realtime pcm16 output is 24kHz)
 /**
  * Decode μ-law 8kHz bytes → PCM 16-bit little-endian at 16kHz.
@@ -21,7 +21,7 @@ const UPSAMPLE_FACTOR = 3; // 8kHz → 24kHz (OpenAI Realtime pcm16 output is 24
  */
 export function mulawToPcm16(mulawBuf) {
     // Decode μ-law → 16-bit PCM samples at 8kHz
-    const pcm8k = MulawCodec.decode(new Uint8Array(mulawBuf));
+    const pcm8k = mulaw.decode(new Uint8Array(mulawBuf));
     const inCount = pcm8k.length;
     // Upsample via linear interpolation
     const outCount = inCount * UPSAMPLE_FACTOR;
@@ -54,7 +54,7 @@ export function pcm16ToMulaw(pcm16Buf) {
         downsampled[i] = Math.round(sum / UPSAMPLE_FACTOR);
     }
     // Encode to μ-law
-    const encoded = MulawCodec.encode(downsampled);
+    const encoded = mulaw.encode(downsampled);
     return Buffer.from(encoded.buffer, encoded.byteOffset, encoded.byteLength);
 }
 //# sourceMappingURL=audio.js.map
