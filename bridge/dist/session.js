@@ -174,14 +174,9 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
                 },
             },
         }));
-        // Trigger the initial greeting
-        openaiWs.send(JSON.stringify({
-            type: "response.create",
-            response: {
-                output_modalities: ["audio"],
-                instructions: "Greet the caller with your opening greeting now.",
-            },
-        }));
+        // NOTE: Do NOT send response.create here.
+        // We wait for session.updated before triggering the greeting,
+        // so our instructions are confirmed active before the AI speaks.
     });
     openaiWs.on("message", async (raw) => {
         let msg;
@@ -291,7 +286,7 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
         }
         // ── Input audio transcription config ─────────────────────────────────
         if (eventType === "session.created") {
-            // Enable input transcription after session is ready
+            // Enable input transcription — this triggers session.updated which we use to start the greeting
             openaiWs.send(JSON.stringify({
                 type: "session.update",
                 session: {
@@ -301,6 +296,17 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
                             transcription: { model: "whisper-1" },
                         },
                     },
+                },
+            }));
+            return;
+        }
+        if (eventType === "session.updated") {
+            // Instructions are now confirmed active — safe to trigger the opening greeting
+            openaiWs.send(JSON.stringify({
+                type: "response.create",
+                response: {
+                    output_modalities: ["audio"],
+                    instructions: "Greet the caller in English only. Use your opening greeting exactly as defined in your instructions.",
                 },
             }));
             return;
