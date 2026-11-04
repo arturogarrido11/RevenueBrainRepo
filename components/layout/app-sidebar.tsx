@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, PhoneMissed, Users, Settings, Phone, MessageSquare, LogOut, Bot, Calendar } from "lucide-react"
+import { LayoutDashboard, PhoneMissed, Users, Settings, MessageSquare, LogOut, Bot, Calendar, Phone } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -43,7 +44,20 @@ export function AppSidebar() {
           <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
             <Phone className="size-4 text-primary-foreground" />
           </div>
-          <span className="text-sm font-semibold tracking-tight">Revenue Brain</span>
+          <Image
+              src="/brand/logo-black.svg"
+              alt="Revenue Brain"
+              width={130}
+              height={32}
+              className="block dark:hidden"
+            />
+            <Image
+              src="/brand/logo-white.svg"
+              alt="Revenue Brain"
+              width={130}
+              height={32}
+              className="hidden dark:block"
+            />
         </div>
       </SidebarHeader>
 
