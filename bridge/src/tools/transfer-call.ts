@@ -63,7 +63,8 @@ export async function transferCallHandler(
     }
 
     state.callOutcome = "transferred"
-    state.shouldClose = true
+    // Do NOT set shouldClose — Twilio's redirect will naturally end the stream.
+    // Setting shouldClose here causes a race between bridge teardown and the redirect.
 
     return { success: true, message: "Transferring now." }
   } catch (err) {

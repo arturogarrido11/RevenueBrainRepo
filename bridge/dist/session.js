@@ -259,10 +259,15 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
                     output: toolResult,
                 },
             }));
-            // Resume response generation
-            openaiWs.send(JSON.stringify({ type: "response.create" }));
-            // If end_call or transfer_call triggered close, handle it
-            if (state.shouldClose) {
+            // Resume response generation (only if not closing — transfer redirect handles its own ending)
+            if (!state.shouldClose) {
+                openaiWs.send(JSON.stringify({
+                    type: "response.create",
+                    response: { output_modalities: ["audio"] },
+                }));
+            }
+            // end_call closes the session after the goodbye; transfer lets Twilio redirect handle teardown
+            if (state.shouldClose && state.callOutcome !== "transferred") {
                 setTimeout(() => {
                     openaiWs.close();
                 }, 2000); // give AI 2s to say goodbye
