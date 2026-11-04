@@ -9,11 +9,14 @@
  */
 
 import type * as appointments from "../appointments.js";
+import type * as auth from "../auth.js";
+import type * as businesses from "../businesses.js";
 import type * as calls from "../calls.js";
 import type * as contacts from "../contacts.js";
 import type * as http from "../http.js";
 import type * as leads from "../leads.js";
 import type * as messages from "../messages.js";
+import type * as phone_numbers from "../phone_numbers.js";
 import type * as receptionist_config from "../receptionist_config.js";
 import type * as settings from "../settings.js";
 import type * as twilio from "../twilio.js";
@@ -27,11 +30,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
+  auth: typeof auth;
+  businesses: typeof businesses;
   calls: typeof calls;
   contacts: typeof contacts;
   http: typeof http;
   leads: typeof leads;
   messages: typeof messages;
+  phone_numbers: typeof phone_numbers;
   receptionist_config: typeof receptionist_config;
   settings: typeof settings;
   twilio: typeof twilio;

@@ -1,5 +1,6 @@
 import { query, internalQuery, mutation } from "./_generated/server"
 import { v } from "convex/values"
+import { getAuthUserId } from "@convex-dev/auth/server"
 
 // Default config returned when no row exists yet
 const DEFAULTS = {
@@ -83,6 +84,18 @@ export const upsert = mutation({
     } else {
       await ctx.db.insert("receptionist_config", data)
     }
+  },
+})
+
+// ── Internal query by businessId (used from /api/business-config) ──────────
+export const getByBusiness = internalQuery({
+  args: { businessId: v.id("businesses") },
+  handler: async (ctx, { businessId }) => {
+    const config = await ctx.db
+      .query("receptionist_config")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .first()
+    return config ?? { ...DEFAULTS, businessId }
   },
 })
 

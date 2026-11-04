@@ -1,32 +1,55 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import {
+  convexAuthNextjsMiddleware,
+  createRouteMatcher,
+  nextjsMiddlewareRedirect,
+} from "@convex-dev/auth/nextjs/server"
 
-const PROTECTED_PREFIXES = ["/dashboard", "/calls", "/contacts", "/leads", "/settings", "/receptionist", "/appointments"];
+const isPublicPage = createRouteMatcher([
+  // Marketing / legal
+  "/",
+  "/how-it-works(.*)",
+  "/pricing(.*)",
+  "/demo(.*)",
+  "/privacy(.*)",
+  "/privacy-policy(.*)",
+  "/terms(.*)",
+  "/terms-of-service(.*)",
+  "/sms-policy(.*)",
+  "/missed-call-consent-proof(.*)",
+  // Auth routes
+  "/login(.*)",
+  "/signup(.*)",
+  "/onboarding(.*)",
+])
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const sessionSecret = process.env.SESSION_SECRET ?? "dev-session-secret";
-  const cookie = request.cookies.get("rb_session")?.value;
-  const isLoggedIn = cookie === sessionSecret;
+export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+  const { pathname } = request.nextUrl
+  const authenticated = await convexAuth.isAuthenticated()
 
-  // Logged-in users visiting the marketing homepage go to their dashboard
-  if (pathname === "/" && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Logged-in users hitting the marketing homepage → dashboard
+  if (pathname === "/" && authenticated) {
+    return nextjsMiddlewareRedirect(request, "/dashboard")
   }
 
-  // Logged-in users visiting login go to dashboard
-  if (pathname === "/login" && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Logged-in users hitting login/signup → dashboard
+  if ((pathname === "/login" || pathname === "/signup") && authenticated) {
+    return nextjsMiddlewareRedirect(request, "/dashboard")
   }
 
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-  if (isProtected && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // Protected routes: require auth
+  if (!isPublicPage(request) && !authenticated) {
+    return nextjsMiddlewareRedirect(request, "/login")
   }
-
-  return NextResponse.next();
-}
+})
 
 export const config = {
-  matcher: ["/", "/login", "/dashboard/:path*", "/calls/:path*", "/contacts/:path*", "/leads/:path*", "/settings/:path*", "/receptionist/:path*", "/appointments/:path*"],
-};
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico
+     * - Files with extensions (images, fonts, etc.)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+}

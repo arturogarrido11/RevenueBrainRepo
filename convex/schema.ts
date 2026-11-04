@@ -1,12 +1,54 @@
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
+import { authTables } from "@convex-dev/auth/server"
 
 export default defineSchema({
+  ...authTables,
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Multi-tenancy: one row per signed-up business account
+  // ──────────────────────────────────────────────────────────────────────────
+  businesses: defineTable({
+    userId: v.string(),             // Convex Auth user ID
+    businessName: v.string(),
+    industry: v.optional(v.string()),
+    address: v.optional(v.string()),
+    website: v.optional(v.string()),
+    timezone: v.string(),            // IANA, default "America/New_York"
+    ownerEmail: v.string(),
+    ownerPhone: v.optional(v.string()), // for SMS notifications
+    // Subscription
+    plan: v.union(v.literal("trial"), v.literal("starter"), v.literal("pro")),
+    trialEndsAt: v.optional(v.number()),
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    onboardingCompleted: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Twilio phone numbers assigned to businesses
+  // ──────────────────────────────────────────────────────────────────────────
+  phone_numbers: defineTable({
+    businessId: v.id("businesses"),
+    twilioPhoneNumber: v.string(),   // E.164, e.g. "+17865551234"
+    twilioPhoneSid: v.string(),      // Twilio IncomingPhoneNumber SID
+    areaCode: v.optional(v.string()),
+    status: v.union(v.literal("active"), v.literal("released")),
+    createdAt: v.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_number", ["twilioPhoneNumber"]),
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Calls — now with optional businessId for multi-tenant scoping
+  // ──────────────────────────────────────────────────────────────────────────
   calls: defineTable({
     twilioCallSid: v.string(),
     callerName: v.optional(v.string()),
     phoneNumber: v.string(), // caller's number in E.164
-    timestamp: v.number(), // Unix ms
+    timestamp: v.number(),   // Unix ms
     status: v.union(
       v.literal("missed"),
       v.literal("responded"),
@@ -51,10 +93,14 @@ export default defineSchema({
     )),
     appointmentId: v.optional(v.id("appointments")),
     callDurationSec: v.optional(v.number()),
+    // Multi-tenancy: optional for backward compat with legacy data
+    businessId: v.optional(v.id("businesses")),
   })
     .index("by_timestamp", ["timestamp"])
     .index("by_phone", ["phoneNumber"])
-    .index("by_callSid", ["twilioCallSid"]),
+    .index("by_callSid", ["twilioCallSid"])
+    .index("by_business", ["businessId"])
+    .index("by_business_timestamp", ["businessId", "timestamp"]),
 
   contacts: defineTable({
     name: v.optional(v.string()),
@@ -72,7 +118,10 @@ export default defineSchema({
       v.literal("lapsed")
     ),
     optedOut: v.optional(v.boolean()),
-  }).index("by_phone", ["phoneNumber"]),
+    businessId: v.optional(v.id("businesses")),
+  })
+    .index("by_phone", ["phoneNumber"])
+    .index("by_business", ["businessId"]),
 
   settings: defineTable({
     businessName: v.string(),
@@ -81,117 +130,116 @@ export default defineSchema({
     responseDelaySeconds: v.number(),
     ownerAlertEmailEnabled: v.optional(v.boolean()),
     ownerEmail: v.optional(v.string()),
-  }),
+    businessId: v.optional(v.id("businesses")),
+  })
+    .index("by_business", ["businessId"]),
 
   leads: defineTable({
     fromPhoneNumber: v.string(),
     messageBody: v.string(),
     timestamp: v.number(),
+    // businessId stored as string for backward compat (old rows have phone number here).
+    // New rows will store the Convex Id<"businesses"> as a string.
     businessId: v.optional(v.string()),
     twilioMessageSid: v.optional(v.string()),
   })
     .index("by_timestamp", ["timestamp"])
-    .index("by_phone", ["fromPhoneNumber"]),
+    .index("by_phone", ["fromPhoneNumber"])
+    .index("by_business", ["businessId"]),
 
   messages: defineTable({
-    phoneNumber: v.string(),   // the contact phone number
+    phoneNumber: v.string(),
     direction: v.union(v.literal("outbound"), v.literal("inbound")),
     body: v.string(),
     timestamp: v.number(),
     sentBy: v.optional(v.string()), // "auto" | "manual"
+    businessId: v.optional(v.id("businesses")),
   })
     .index("by_phone", ["phoneNumber"])
-    .index("by_timestamp", ["timestamp"]),
+    .index("by_timestamp", ["timestamp"])
+    .index("by_business", ["businessId"]),
 
-  // ──────────────────────────────────────────────
-  // AI Voice Receptionist — singleton config table
-  // Same pattern as `settings` (single-tenant V1)
-  // ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
+  // AI Voice Receptionist — config (now with optional businessId for multi-tenant)
+  // ──────────────────────────────────────────────────────────────────────────
   receptionist_config: defineTable({
     // Trigger mode
     triggerMode: v.union(
-      v.literal("always_on"),   // AI answers every inbound call
-      v.literal("missed_only"), // AI activates after forward ring times out
-      v.literal("after_hours")  // AI activates based on business hours schedule
+      v.literal("always_on"),
+      v.literal("missed_only"),
+      v.literal("after_hours")
     ),
-
     // AI persona
-    personaName: v.string(),                              // e.g. "Sarah"
-    personaInstructions: v.optional(v.string()),          // custom system prompt additions
-    greetingMessage: v.optional(v.string()),              // first thing AI says
+    personaName: v.string(),
+    personaInstructions: v.optional(v.string()),
+    greetingMessage: v.optional(v.string()),
     faqs: v.optional(v.array(v.object({
       question: v.string(),
       answer: v.string(),
     }))),
-
     // Scheduling mode
     schedulingMode: v.union(
-      v.literal("capture_only"), // AI captures preferred time, no calendar API call
-      v.literal("live_book")     // AI books directly via calendar API
+      v.literal("capture_only"),
+      v.literal("live_book")
     ),
-
-    // Calendar provider (only relevant when schedulingMode == "live_book")
+    // Calendar provider
     calendarProvider: v.optional(v.union(
       v.literal("calendly"),
       v.literal("cal_com"),
       v.literal("google_calendar"),
       v.literal("none")
     )),
-    calendarApiKey: v.optional(v.string()),      // Calendly PAT or Cal.com API key
-    calendarEventTypeId: v.optional(v.string()), // Cal.com eventTypeId or Calendly event_type URI
-
-    // Business hours (only relevant when triggerMode == "after_hours")
-    businessHoursTimezone: v.optional(v.string()), // IANA tz e.g. "America/New_York"
-    businessHoursStart: v.optional(v.string()),    // "09:00" (24hr)
-    businessHoursEnd: v.optional(v.string()),      // "17:00" (24hr)
-    businessDays: v.optional(v.array(v.number())), // [1,2,3,4,5] = Mon–Fri
-
+    calendarApiKey: v.optional(v.string()),
+    calendarEventTypeId: v.optional(v.string()),
+    // Business hours
+    businessHoursTimezone: v.optional(v.string()),
+    businessHoursStart: v.optional(v.string()),
+    businessHoursEnd: v.optional(v.string()),
+    businessDays: v.optional(v.array(v.number())),
     // Forwarding / escalation
-    forwardToNumber: v.optional(v.string()),         // E.164 number to ring first (missed_only)
-    forwardRingTimeoutSec: v.optional(v.number()),   // seconds to ring before AI takes over (default 25)
-    escalationNumber: v.optional(v.string()),        // E.164 number for transfer_call tool
-
+    forwardToNumber: v.optional(v.string()),
+    forwardRingTimeoutSec: v.optional(v.number()),
+    escalationNumber: v.optional(v.string()),
     // Meta
     enabled: v.boolean(),
     updatedAt: v.number(),
-  }),
+    // Multi-tenancy
+    businessId: v.optional(v.id("businesses")),
+  })
+    .index("by_business", ["businessId"]),
 
-  // ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
   // Appointment records from AI voice sessions
-  // ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
   appointments: defineTable({
     callId: v.id("calls"),
     phoneNumber: v.string(),
     callerName: v.optional(v.string()),
-
-    // Captured time preference (always populated)
-    requestedDatetime: v.optional(v.string()),    // ISO 8601
-    requestedDatetimeRaw: v.optional(v.string()), // raw text: "next Tuesday afternoon"
-
-    // Live booking result
+    requestedDatetime: v.optional(v.string()),
+    requestedDatetimeRaw: v.optional(v.string()),
     bookingStatus: v.union(
-      v.literal("captured"),    // time logged, no calendar booking
-      v.literal("booked"),      // successfully booked via calendar API
-      v.literal("failed"),      // calendar API call failed
-      v.literal("transferred")  // call transferred before scheduling
+      v.literal("captured"),
+      v.literal("booked"),
+      v.literal("failed"),
+      v.literal("transferred")
     ),
     calendarProvider: v.optional(v.union(
       v.literal("calendly"),
       v.literal("cal_com"),
       v.literal("google_calendar")
     )),
-    calendarBookingId: v.optional(v.string()),   // booking UID from Cal.com / Calendly
-    calendarBookingUrl: v.optional(v.string()),  // confirmation URL / meeting link
-    calendarStartTime: v.optional(v.string()),   // UTC ISO 8601
-    calendarEndTime: v.optional(v.string()),     // UTC ISO 8601
-
-    // Caller info captured during call
+    calendarBookingId: v.optional(v.string()),
+    calendarBookingUrl: v.optional(v.string()),
+    calendarStartTime: v.optional(v.string()),
+    calendarEndTime: v.optional(v.string()),
     callerEmail: v.optional(v.string()),
     callerNotes: v.optional(v.string()),
-
     timestamp: v.number(),
+    // Multi-tenancy
+    businessId: v.optional(v.id("businesses")),
   })
     .index("by_call", ["callId"])
     .index("by_phone", ["phoneNumber"])
-    .index("by_timestamp", ["timestamp"]),
+    .index("by_timestamp", ["timestamp"])
+    .index("by_business", ["businessId"]),
 })

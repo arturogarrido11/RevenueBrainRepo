@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { PublicShell } from "@/components/layout/public-shell";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn } = useAuthActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -16,22 +18,15 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || "Invalid email or password");
+    try {
+      await signIn("password", { email, password, flow: "signIn" });
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid email or password";
+      setError(msg);
       setLoading(false);
-      return;
     }
-
-    const data = await res.json();
-    router.push(data.role === "super_admin" ? "/admin/businesses" : "/dashboard");
-    router.refresh();
   }
 
   return (
@@ -67,6 +62,13 @@ export default function LoginPage() {
           </button>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </form>
+
+        <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+          Don&apos;t have an account?{" "}
+          <a href="/signup" className="text-primary underline-offset-2 hover:underline">
+            Sign up free
+          </a>
+        </p>
       </div>
     </PublicShell>
   );

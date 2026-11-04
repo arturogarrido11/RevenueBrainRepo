@@ -475,6 +475,7 @@ export const recordInboundSmsLead = internalMutation({
     fromPhoneNumber: v.string(),
     messageBody: v.string(),
     timestamp: v.number(),
+    // string for backward compat (old code stored phone number here; new code stores businessId string)
     businessId: v.optional(v.string()),
     twilioMessageSid: v.optional(v.string()),
   },
@@ -541,6 +542,7 @@ export const createAiSession = internalMutation({
     phoneNumber: v.string(),
     callerName: v.optional(v.string()),
     timestamp: v.number(),
+    businessId: v.optional(v.id("businesses")),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -555,6 +557,7 @@ export const createAiSession = internalMutation({
         status: "pending",
         type: "ai_receptionist",
         channel: "voice",
+        ...(args.businessId ? { businessId: args.businessId } : {}),
       })
       return existing._id
     }
@@ -569,6 +572,7 @@ export const createAiSession = internalMutation({
       smsSent: false,
       type: "ai_receptionist",
       channel: "voice",
+      businessId: args.businessId,
     })
   },
 })

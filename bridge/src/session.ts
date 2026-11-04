@@ -40,6 +40,8 @@ export interface SessionState {
 
   // Config (fetched from Convex at session start)
   config?: ReceptionistConfig
+  businessName?: string
+  businessId?: string
 
   // Collected during session
   capturedLead?: {
@@ -77,21 +79,33 @@ const OPENAI_WS_URL = `wss://api.openai.com/v1/realtime?model=gpt-realtime`
 // Fetch config from Convex
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function fetchConfigFromConvex(): Promise<ReceptionistConfig | null> {
+/**
+ * Fetch the business config from Convex based on the Twilio number that was called.
+ * Called after receiving the Twilio "start" event (which carries the `to` number).
+ */
+async function fetchConfigFromConvex(toNumber: string): Promise<(ReceptionistConfig & { businessId?: string; businessName?: string }) | null> {
   const convexSiteUrl = process.env.CONVEX_SITE_URL
-  if (!convexSiteUrl) return null
-
+  if (!convexSiteUrl || !toNumber) return null
   try {
-    // We call the Convex HTTP action that returns the config
-    // Note: receptionist_config.get is a public query, accessible via the Convex client
-    // For the bridge, we read config at session start via a dedicated endpoint
-    // For now, fall back to env-based defaults since the bridge has no Convex client
-    // The config is loaded by the /voice HTTP action and should be passed via
-    // the WebSocket URL's query params or a dedicated config endpoint.
-    // This is a simplified implementation — in production, pass config via query params
-    // or a pre-flight HTTP request.
-    return null
-  } catch {
+    const res = await fetch(
+      `${convexSiteUrl}/api/business-config?number=${encodeURIComponent(toNumber)}`
+    )
+    if (!res.ok) {
+      console.warn(JSON.stringify({
+        event: "session.config_fetch.failed",
+        status: res.status,
+        toNumber,
+      }))
+      return null
+    }
+    const data = await res.json()
+    return data as ReceptionistConfig & { businessId?: string; businessName?: string }
+  } catch (err) {
+    console.error(JSON.stringify({
+      event: "session.config_fetch.exception",
+      toNumber,
+      error: String(err),
+    }))
     return null
   }
 }
@@ -186,7 +200,7 @@ export async function handleSession(
     startedAt: Date.now(),
   }
 
-  // Build config (in production, fetch from Convex; for now use defaults + override)
+  // Build default config (will be overridden with live Convex config on "start" event)
   const defaultConfig: ReceptionistConfig = {
     personaName: "Alex",
     schedulingMode: "capture_only",
@@ -194,9 +208,9 @@ export async function handleSession(
     businessHoursTimezone: "America/New_York",
   }
   state.config = { ...defaultConfig, ...configOverride }
+  state.businessName = process.env.BUSINESS_NAME ?? "the business"
 
-  const businessName = process.env.BUSINESS_NAME ?? "the business"
-  const systemPrompt = buildSystemPrompt(state.config, businessName)
+  const systemPrompt = buildSystemPrompt(state.config, state.businessName)
 
   console.log(JSON.stringify({
     event: "session.start",
@@ -445,13 +459,44 @@ export async function handleSession(
     const event = msg.event as string
 
     if (event === "start") {
-      const startData = msg.start as { streamSid?: string; callSid?: string; customParameters?: Record<string, string> } | undefined
+      const startData = msg.start as {
+        streamSid?: string
+        callSid?: string
+        to?: string
+        customParameters?: Record<string, string>
+      } | undefined
       streamSid = startData?.streamSid ?? ""
       // Twilio sends the real callSid here — URL query params are stripped by Twilio
       if (!state.callSid && startData?.callSid) {
         state.callSid = startData.callSid
       }
       const resolvedCallSid = state.callSid
+
+      // Fetch live business config from Convex using the number that was called
+      const toNumber = startData?.to ?? state.toNumber
+      if (toNumber) {
+        try {
+          const liveConfig = await fetchConfigFromConvex(toNumber)
+          if (liveConfig) {
+            state.config = liveConfig
+            state.businessName = liveConfig.businessName ?? state.businessName
+            state.businessId = liveConfig.businessId ?? state.businessId
+            console.log(JSON.stringify({
+              event: "session.config_fetched",
+              callSid: resolvedCallSid,
+              businessId: state.businessId,
+              enabled: liveConfig.enabled,
+            }))
+          }
+        } catch (err) {
+          console.error(JSON.stringify({
+            event: "session.config_fetch.error",
+            callSid: resolvedCallSid,
+            error: String(err),
+          }))
+        }
+      }
+
       console.log(JSON.stringify({ event: "twilio.stream_start", callSid: resolvedCallSid, streamSid, buffered: audioBuffer.length }))
 
       // Flush any audio that arrived before streamSid was known

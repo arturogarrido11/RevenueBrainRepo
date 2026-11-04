@@ -1,8 +1,13 @@
 import { httpRouter } from "convex/server"
 import { httpAction } from "./_generated/server"
 import { internal } from "./_generated/api"
+import { auth } from "./auth"
+import { Id } from "./_generated/dataModel"
 
 const http = httpRouter()
+
+// Register Convex Auth HTTP routes (/api/auth/*)
+auth.addHttpRoutes(http)
 
 const MISSED_STATUSES = new Set(["no-answer", "busy", "failed"])
 const STOP_KEYWORDS = new Set(["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"])
@@ -71,6 +76,7 @@ http.route({
     const callerName = params.get("CallerName") || undefined
     const timestamp = Date.now()
 
+    const toNumber = params.get("To") ?? ""
     const bridgeWssUrl = process.env.BRIDGE_WSS_URL
     const convexSiteUrl = process.env.CONVEX_SITE_URL ?? ""
 
@@ -82,7 +88,27 @@ http.route({
       return twiml("<Response><Say>We're sorry, we are unable to take your call right now. Please try again later.</Say></Response>")
     }
 
-    const config = await ctx.runQuery(internal.receptionist_config.getInternal)
+    // ── Multi-tenant: look up business by the number that was called ─────────
+    // If a phone_numbers record exists for `To`, use that business's config.
+    // Otherwise fall back to the legacy single-tenant singleton config.
+    let config: Awaited<ReturnType<typeof ctx.runQuery<typeof internal.receptionist_config.getInternal>>>
+    let businessId: string | undefined
+
+    if (toNumber) {
+      const phoneRecord = await ctx.runQuery(internal.phone_numbers.getByNumber, {
+        twilioPhoneNumber: toNumber,
+      })
+      if (phoneRecord) {
+        businessId = phoneRecord.businessId
+        config = await ctx.runQuery(internal.receptionist_config.getByBusiness, {
+          businessId: phoneRecord.businessId,
+        })
+      } else {
+        config = await ctx.runQuery(internal.receptionist_config.getInternal)
+      }
+    } else {
+      config = await ctx.runQuery(internal.receptionist_config.getInternal)
+    }
 
     if (!config.enabled) {
       // AI receptionist disabled — fall through to standard Twilio behavior
@@ -96,6 +122,7 @@ http.route({
         phoneNumber: from,
         callerName,
         timestamp,
+        businessId: businessId as any,
       })
     }
 
@@ -458,8 +485,17 @@ http.route({
     const from = params.get("From") ?? ""
     const messageBody = params.get("Body") ?? ""
     const messageSid = params.get("MessageSid") || undefined
-    const businessId = params.get("To") || undefined
+    const toNumber = params.get("To") || ""
     const timestamp = Date.now()
+
+    // Multi-tenant: look up the business that owns this Twilio number
+    let businessId: string | undefined
+    if (toNumber) {
+      const phoneRecord = await ctx.runQuery(internal.phone_numbers.getByNumber, {
+        twilioPhoneNumber: toNumber,
+      })
+      if (phoneRecord) businessId = phoneRecord.businessId as string
+    }
 
     console.log(JSON.stringify({
       event: "webhook.sms.received",
@@ -508,6 +544,65 @@ http.route({
     return new Response(
       '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
       { headers: { "Content-Type": "text/xml" }, status: 200 }
+    )
+  }),
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/business-config?number=<E.164>
+// Called by the bridge to look up which business config to use for a call.
+// ─────────────────────────────────────────────────────────────────────────────
+http.route({
+  path: "/api/business-config",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url)
+    const twilioNumber = url.searchParams.get("number") // E.164
+    if (!twilioNumber) {
+      return new Response(JSON.stringify({ error: "missing number param" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    // Look up which business owns this number
+    const phoneRecord = await ctx.runQuery(internal.phone_numbers.getByNumber, {
+      twilioPhoneNumber: twilioNumber,
+    })
+    if (!phoneRecord) {
+      return new Response(JSON.stringify({ error: "unknown number" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    // Get the business’s receptionist config and business info
+    const [config, business] = await Promise.all([
+      ctx.runQuery(internal.receptionist_config.getByBusiness, {
+        businessId: phoneRecord.businessId,
+      }),
+      ctx.runQuery(internal.businesses.get, {
+        businessId: phoneRecord.businessId,
+      }),
+    ])
+
+    return new Response(
+      JSON.stringify({
+        businessId: phoneRecord.businessId,
+        businessName: business?.businessName ?? "the business",
+        personaName: config?.personaName ?? "Alex",
+        personaInstructions: config?.personaInstructions,
+        greetingMessage: config?.greetingMessage,
+        faqs: config?.faqs ?? [],
+        schedulingMode: config?.schedulingMode ?? "capture_only",
+        calendarProvider: config?.calendarProvider,
+        calendarApiKey: config?.calendarApiKey,
+        calendarEventTypeId: config?.calendarEventTypeId,
+        businessHoursTimezone: config?.businessHoursTimezone ?? "America/New_York",
+        escalationNumber: config?.escalationNumber,
+        enabled: config?.enabled ?? false,
+      }),
+      { headers: { "Content-Type": "application/json" } }
     )
   }),
 })
