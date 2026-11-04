@@ -169,7 +169,7 @@ export async function handleSession(twilioWs, callSid, fromNumber, toNumber, con
                     },
                     output: {
                         format: { type: "audio/pcm", rate: 24000 },
-                        voice: "shimmer",
+                        voice: "coral",
                     },
                 },
             },

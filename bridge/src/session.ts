@@ -249,7 +249,7 @@ export async function handleSession(
           },
           output: {
             format: { type: "audio/pcm", rate: 24000 },
-            voice: "shimmer",
+            voice: "coral",
           },
         },
       },
