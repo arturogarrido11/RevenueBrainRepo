@@ -1,13 +1,16 @@
 "use client"
 
 import { useQuery } from "convex/react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState, Suspense } from "react"
 import { api } from "@/convex/_generated/api"
 import { AppShell } from "@/components/layout/app-shell"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { PhoneMissed, Users, MessageSquare, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { PhoneMissed, Users, MessageSquare, Clock, CheckCircle, X } from "lucide-react"
+import { CallForwardingInstructions } from "@/components/call-forwarding"
 
 function formatRelativeTime(timestamp: number): string {
   const diffMs = Date.now() - timestamp
@@ -27,11 +30,42 @@ function formatResponseTime(seconds?: number): string {
   return `${Math.floor(seconds / 60)}m`
 }
 
-export default function DashboardPage() {
+function SuccessBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 flex items-start gap-3">
+      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+      <div className="flex-1">
+        <p className="font-semibold text-green-800 dark:text-green-200">🎉 You're all set!</p>
+        <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
+          Your AI receptionist is configured and ready. Forward your calls to get started — instructions below.
+        </p>
+      </div>
+      <button onClick={onDismiss} className="text-green-600 dark:text-green-400 hover:opacity-70">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
+
+function DashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const justOnboarded = searchParams.get("onboarded") === "1"
+
+  const business = useQuery(api.businesses.getMyBusiness)
   const stats = useQuery(api.calls.getStats)
   const recentCalls = useQuery(api.calls.listRecent)
   const recentLeads = useQuery(api.leads.listRecent)
+  const phoneNumbers = useQuery(api.phone_numbers.listMyNumbers)
+
+  const [showBanner, setShowBanner] = useState(justOnboarded)
+
+  // Redirect to onboarding if not completed
+  useEffect(() => {
+    if (business !== undefined && business !== null && !business.onboardingCompleted) {
+      router.replace("/onboarding")
+    }
+  }, [business, router])
 
   const missedToday = stats?.missedToday ?? 0
   const missedYesterday = stats?.missedYesterday ?? 0
@@ -40,15 +74,28 @@ export default function DashboardPage() {
   const totalContacts = stats?.totalContacts ?? 0
   const trendDiff = missedToday - missedYesterday
 
+  const aiNumber = phoneNumbers?.[0]?.twilioPhoneNumber
+
   return (
     <AppShell title="Dashboard">
       <div className="flex flex-col gap-6">
+        {/* Success banner after onboarding */}
+        {showBanner && <SuccessBanner onDismiss={() => setShowBanner(false)} />}
+
+        {/* Stats */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           <StatCard title="Missed Today" value={String(missedToday)} description={`${trendDiff >= 0 ? "+" : ""}${trendDiff} vs yesterday`} icon={PhoneMissed} trend={{ value: `${trendDiff >= 0 ? "+" : ""}${trendDiff}`, direction: trendDiff >= 0 ? "up" : "down", positive: trendDiff <= 0 }} />
           <StatCard title="Response Rate" value={`${Math.round(responseRate * 100)}%`} description="Callers who replied by SMS" icon={MessageSquare} />
           <StatCard title="Avg Response Time" value={formatResponseTime(avgResponseTime)} description="From missed call to SMS reply" icon={Clock} />
           <StatCard title="Total Contacts" value={String(totalContacts)} description="Unique callers tracked" icon={Users} />
         </div>
+
+        {/* Call forwarding card — shown if number provisioned */}
+        {aiNumber && (
+          <CallForwardingInstructions number={aiNumber} compact />
+        )}
+
+        {/* Recent activity */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader><CardTitle className="text-sm font-semibold">Recent Missed Calls</CardTitle></CardHeader>
@@ -102,5 +149,13 @@ export default function DashboardPage() {
         </div>
       </div>
     </AppShell>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
   )
 }

@@ -335,37 +335,68 @@ http.route({
       appointmentId: appointmentId as any,
     })
 
-    // ── Owner alert email ────────────────────────────────────────────────────
-    const settings = await ctx.runQuery(internal.settings.getInternal)
+    // ── Owner alert email (multi-tenant, Resend) ─────────────────────────────
     const resendApiKey = process.env.RESEND_API_KEY
-
-    if (settings.ownerAlertEmailEnabled && settings.ownerEmail && resendApiKey && call) {
-      const emailBody = [
-        `New AI Voice Receptionist call summary — Revenue Brain`,
-        ``,
-        `From: ${call.phoneNumber}`,
-        `Outcome: ${sessionUpdate.callOutcome ?? "unknown"}`,
-        sessionUpdate.priority ? `Priority: ${sessionUpdate.priority.toUpperCase()}` : null,
-        ``,
-        sessionUpdate.summary ? `Summary:\n${sessionUpdate.summary}` : null,
-        appointment ? `\nAppointment:\n  Status: ${appointment.bookingStatus}\n  Time: ${appointment.calendarStartTime ?? appointment.requestedDatetimeRaw ?? "N/A"}` : null,
-        sessionUpdate.transcript ? `\nTranscript:\n${sessionUpdate.transcript}` : null,
-      ].filter(Boolean).join("\n")
-
+    if (resendApiKey && call) {
       try {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "Revenue Brain <no-reply@revenuebrain.ai>",
-            to: settings.ownerEmail,
-            subject: `AI call from ${call.phoneNumber} — ${sessionUpdate.callOutcome ?? "completed"}`,
-            text: emailBody,
-          }),
-        })
+        // Look up the business that owns this call for multi-tenant email routing
+        let recipientEmail: string | undefined
+        let businessNameStr: string = "Revenue Brain"
+        if (call.businessId) {
+          const bizRecord = await ctx.runQuery(internal.businesses.get, { businessId: call.businessId })
+          if (bizRecord) {
+            recipientEmail = bizRecord.notificationEmail ?? bizRecord.ownerEmail
+            businessNameStr = bizRecord.businessName
+          }
+        }
+        // Fallback to legacy settings row
+        if (!recipientEmail) {
+          const settings = await ctx.runQuery(internal.settings.getInternal)
+          if (settings.ownerAlertEmailEnabled && settings.ownerEmail) {
+            recipientEmail = settings.ownerEmail
+          }
+        }
+
+        if (recipientEmail) {
+          const estTime = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/New_York",
+            dateStyle: "short",
+            timeStyle: "short",
+          }).format(new Date(call.timestamp))
+
+          const outcome = sessionUpdate.callOutcome ?? "completed"
+          const subject = `New AI Call — ${call.phoneNumber} — ${outcome}`
+          const dashboardUrl = "https://app.revenuebrain.ai/dashboard"
+
+          const emailBody = [
+            `New AI Receptionist Call — ${businessNameStr}`,
+            ``,
+            `Caller: ${call.phoneNumber}`,
+            `Time: ${estTime} EST`,
+            `Outcome: ${outcome}`,
+            sessionUpdate.priority ? `Priority: ${sessionUpdate.priority.toUpperCase()}` : null,
+            ``,
+            sessionUpdate.summary ? `Summary:\n${sessionUpdate.summary}` : null,
+            appointment ? `\nAppointment:\n  Status: ${appointment.bookingStatus}\n  Time: ${appointment.calendarStartTime ?? appointment.requestedDatetimeRaw ?? "N/A"}` : null,
+            sessionUpdate.transcript ? `\nTranscript:\n${sessionUpdate.transcript}` : null,
+            ``,
+            `View in dashboard: ${dashboardUrl}`,
+          ].filter(Boolean).join("\n")
+
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${resendApiKey}`,
+            },
+            body: JSON.stringify({
+              from: "Revenue Brain <calls@revenuebrain.ai>",
+              to: recipientEmail,
+              subject,
+              text: emailBody,
+            }),
+          })
+        }
       } catch (err) {
         console.error(JSON.stringify({
           event: "webhook.session_end.email_failed",

@@ -1,4 +1,5 @@
 import { query, mutation, internalMutation, internalQuery, internalAction } from "./_generated/server"
+import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
@@ -76,9 +77,16 @@ async function maybeUploadRecordingToR2(
 
 export const listRecent = query({
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const business = await ctx.db
+      .query("businesses")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique()
+    if (!business) return []
     return await ctx.db
       .query("calls")
-      .withIndex("by_timestamp")
+      .withIndex("by_business_timestamp", (q) => q.eq("businessId", business._id))
       .order("desc")
       .take(8)
   },
@@ -86,9 +94,16 @@ export const listRecent = query({
 
 export const list = query({
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const business = await ctx.db
+      .query("businesses")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique()
+    if (!business) return []
     return await ctx.db
       .query("calls")
-      .withIndex("by_timestamp")
+      .withIndex("by_business_timestamp", (q) => q.eq("businessId", business._id))
       .order("desc")
       .collect()
   },
@@ -96,8 +111,21 @@ export const list = query({
 
 export const getStats = query({
   handler: async (ctx) => {
-    const calls = await ctx.db.query("calls").collect()
-    const contacts = await ctx.db.query("contacts").collect()
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return { missedToday: 0, missedYesterday: 0, responseRate: 0, avgResponseTimeSeconds: 0, totalContacts: 0, newContactsThisWeek: 0 }
+    const business = await ctx.db
+      .query("businesses")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique()
+    if (!business) return { missedToday: 0, missedYesterday: 0, responseRate: 0, avgResponseTimeSeconds: 0, totalContacts: 0, newContactsThisWeek: 0 }
+    const calls = await ctx.db
+      .query("calls")
+      .withIndex("by_business", (q) => q.eq("businessId", business._id))
+      .collect()
+    const contacts = await ctx.db
+      .query("contacts")
+      .withIndex("by_business", (q) => q.eq("businessId", business._id))
+      .collect()
 
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)

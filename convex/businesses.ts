@@ -4,6 +4,7 @@ import {
   internalQuery,
   internalMutation,
   action,
+  internalAction,
 } from "./_generated/server"
 import { v } from "convex/values"
 import { getAuthUserId } from "@convex-dev/auth/server"
@@ -69,7 +70,7 @@ export const createForCurrentUser = mutation({
 
     const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000 // 14 days
 
-    return await ctx.db.insert("businesses", {
+    const businessId = await ctx.db.insert("businesses", {
       userId,
       businessName,
       ownerEmail,
@@ -79,6 +80,15 @@ export const createForCurrentUser = mutation({
       onboardingCompleted: false,
       createdAt: Date.now(),
     })
+
+    // Notify Arturo via Telegram (fire-and-forget)
+    await ctx.scheduler.runAfter(0, internal.businesses.sendSignupTelegram, {
+      businessName,
+      ownerEmail,
+      timestamp: Date.now(),
+    })
+
+    return businessId
   },
 })
 
@@ -94,6 +104,8 @@ export const update = mutation({
     timezone: v.optional(v.string()),
     ownerPhone: v.optional(v.string()),
     onboardingCompleted: v.optional(v.boolean()),
+    onboardingStep: v.optional(v.number()),
+    notificationEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
@@ -141,6 +153,66 @@ export const createInternal = internalMutation({
       onboardingCompleted: false,
       createdAt: Date.now(),
     })
+  },
+})
+
+/**
+ * Complete onboarding: set onboardingCompleted=true and persist notificationEmail.
+ */
+export const completeOnboarding = mutation({
+  args: { notificationEmail: v.string() },
+  handler: async (ctx, { notificationEmail }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error("Not authenticated")
+    const business = await ctx.db
+      .query("businesses")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first()
+    if (!business) throw new Error("Business not found")
+    await ctx.db.patch(business._id, { onboardingCompleted: true, notificationEmail })
+    return business._id
+  },
+})
+
+// ── Internal: Telegram signup notification ──────────────────────────────
+export const sendSignupTelegram = internalAction({
+  args: {
+    businessName: v.string(),
+    ownerEmail: v.string(),
+    timestamp: v.number(),
+  },
+  handler: async (_ctx, { businessName, ownerEmail, timestamp }) => {
+    const token = process.env.TELEGRAM_BOT_TOKEN ?? process.env.TELEGRAM_TOKEN
+    if (!token) {
+      // TODO: set TELEGRAM_BOT_TOKEN or TELEGRAM_TOKEN env var in Convex dashboard
+      console.warn(JSON.stringify({ event: "signup.telegram_skipped", reason: "no_token" }))
+      return
+    }
+    const chatId = "6245749337"
+    const estTime = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(timestamp))
+    const message = [
+      "🆕 New Revenue Brain Signup",
+      `Name: ${businessName || "pending"}`,
+      `Email: ${ownerEmail}`,
+      `Time: ${estTime} EST`,
+    ].join("\n")
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text: message }),
+      })
+      if (!res.ok) {
+        const body = await res.text()
+        console.error(JSON.stringify({ event: "signup.telegram_failed", status: res.status, body }))
+      }
+    } catch (err) {
+      console.error(JSON.stringify({ event: "signup.telegram_exception", error: String(err) }))
+    }
   },
 })
 
