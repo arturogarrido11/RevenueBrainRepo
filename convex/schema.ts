@@ -23,6 +23,8 @@ export default defineSchema({
     stripeCustomerId: v.optional(v.string()),
     stripeSubscriptionId: v.optional(v.string()),
     onboardingCompleted: v.boolean(),
+    onboardingStep: v.optional(v.number()),
+    notificationEmail: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"]),
@@ -200,6 +202,19 @@ export default defineSchema({
     forwardToNumber: v.optional(v.string()),
     forwardRingTimeoutSec: v.optional(v.number()),
     escalationNumber: v.optional(v.string()),
+    // Services
+    services: v.optional(v.array(v.object({
+      name: v.string(),
+      price: v.optional(v.string()),
+      duration: v.optional(v.number()),
+    }))),
+    // Business hours per day (array indexed 0=Sun..6=Sat)
+    businessHoursPerDay: v.optional(v.array(v.object({
+      day: v.number(),
+      open: v.boolean(),
+      start: v.optional(v.string()),
+      end: v.optional(v.string()),
+    }))),
     // Meta
     enabled: v.boolean(),
     updatedAt: v.number(),

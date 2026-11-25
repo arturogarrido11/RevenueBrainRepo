@@ -1,13 +1,23 @@
 import { query } from "./_generated/server"
 import { v } from "convex/values"
+import { getAuthUserId } from "@convex-dev/auth/server"
 
 export const listRecent = query({
   handler: async (ctx) => {
-    return await ctx.db
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const business = await ctx.db
+      .query("businesses")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique()
+    if (!business) return []
+    // leads.businessId stored as string (backward compat)
+    const all = await ctx.db
       .query("leads")
       .withIndex("by_timestamp")
       .order("desc")
-      .take(20)
+      .take(100)
+    return all.filter((l) => l.businessId === (business._id as string)).slice(0, 20)
   },
 })
 

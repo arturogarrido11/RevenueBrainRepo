@@ -1,6 +1,6 @@
-import { query, internalQuery, mutation } from "./_generated/server"
-import { v } from "convex/values"
+import { query, internalQuery, mutation, internalMutation } from "./_generated/server"
 import { getAuthUserId } from "@convex-dev/auth/server"
+import { v } from "convex/values"
 
 // Default config returned when no row exists yet
 const DEFAULTS = {
@@ -107,5 +107,102 @@ export const setEnabled = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, { enabled, updatedAt: Date.now() })
     }
+  },
+})
+
+// ── Onboarding: upsert for authenticated user's business ───────────────────────
+export const upsertForBusiness = mutation({
+  args: {
+    triggerMode: v.optional(v.union(
+      v.literal("always_on"),
+      v.literal("missed_only"),
+      v.literal("after_hours")
+    )),
+    personaName: v.optional(v.string()),
+    personaInstructions: v.optional(v.string()),
+    greetingMessage: v.optional(v.string()),
+    faqs: v.optional(v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+    }))),
+    services: v.optional(v.array(v.object({
+      name: v.string(),
+      price: v.optional(v.string()),
+      duration: v.optional(v.number()),
+    }))),
+    businessHoursTimezone: v.optional(v.string()),
+    businessHoursStart: v.optional(v.string()),
+    businessHoursEnd: v.optional(v.string()),
+    businessDays: v.optional(v.array(v.number())),
+    businessHoursPerDay: v.optional(v.array(v.object({
+      day: v.number(),
+      open: v.boolean(),
+      start: v.optional(v.string()),
+      end: v.optional(v.string()),
+    }))),
+    schedulingMode: v.optional(v.union(
+      v.literal("capture_only"),
+      v.literal("live_book")
+    )),
+    calendarProvider: v.optional(v.union(
+      v.literal("calendly"),
+      v.literal("cal_com"),
+      v.literal("google_calendar"),
+      v.literal("none")
+    )),
+    calendarApiKey: v.optional(v.string()),
+    enabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error("Not authenticated")
+    const business = await ctx.db
+      .query("businesses")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first()
+    if (!business) throw new Error("Business not found")
+
+    const existing = await ctx.db
+      .query("receptionist_config")
+      .withIndex("by_business", (q) => q.eq("businessId", business._id))
+      .first()
+
+    const patch: Record<string, unknown> = { businessId: business._id, updatedAt: Date.now() }
+    for (const [key, val] of Object.entries(args)) {
+      if (val !== undefined) patch[key] = val
+    }
+
+    if (existing) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await ctx.db.patch(existing._id, patch as any)
+      return existing._id
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return await ctx.db.insert("receptionist_config", {
+        triggerMode: args.triggerMode ?? "missed_only",
+        personaName: args.personaName ?? "Alex",
+        schedulingMode: args.schedulingMode ?? "capture_only",
+        enabled: args.enabled ?? false,
+        ...patch,
+      } as any)
+    }
+  },
+})
+
+// ── Get config for authenticated user's business ──────────────────────────────
+export const getForMyBusiness = query({
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return null
+    const business = await ctx.db
+      .query("businesses")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first()
+    if (!business) return null
+    const config = await ctx.db
+      .query("receptionist_config")
+      .withIndex("by_business", (q) => q.eq("businessId", business._id))
+      .first()
+    return config ?? { ...DEFAULTS, businessId: business._id }
   },
 })
